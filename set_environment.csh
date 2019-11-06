@@ -25,9 +25,3 @@ module load $ARMADILLO_MODULE
 # Load Python, if desired
 set PYTHON_MODULE              = dev_tools/oct2018/python-Anaconda-3-5.3.0
 module load $PYTHON_MODULE
-
-# Now set further environment variables as needed by glimpse's cmake.
-# Actually I am not sure that these are needed. See cm.sh, which should be used to call cmake.
-#setenv FFTWDIR ${FFTW_ROOT}
-#setenv CFITSIO_ROOT_DIR ${CFITSIO}
-
