@@ -26,4 +26,3 @@ module load $ARMADILLO_MODULE
 set PYTHON_MODULE              = dev_tools/oct2018/python-Anaconda-3-5.3.0
 module load $PYTHON_MODULE
 
-###set NFFT_HOME                  = ${PWD}/nfft/
