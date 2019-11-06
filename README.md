@@ -12,5 +12,9 @@ and in the same for loop also add the line
 lensKernelTrue[ind] = 1. ;
 6. cd ./Glimpse
 7. ../cm.sh (This will run cmake with the correct settings)
-8. cd build
+8. cd ./build
 9. make
+
+## Things to know about glimpse:
+1. Command line arguments should be ini file, input catalogue, and output file name (in that order), The flags '--config', '--data' and '--output' should not be provided.
+2. In the ini file, the 'size' argument is a diameter, not a radius. 
