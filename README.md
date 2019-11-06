@@ -1,5 +1,7 @@
 # glimpse_project
 
+Information useful for running glimpse on the splinter cluster at UCL.
+
 ## To build Glimpse in the splinter environment
 
 1. git clone https://github.com/LorneWhiteway/glimpse_project.git
