@@ -35,14 +35,14 @@ def kappa_values_in_one_fine_pixel():
     import sys
     
     (r,d) = hp.pix2ang(16, 2218, False, True)
-    specific_fine_healpix_id = hp.ang2pix(1024, r, d, False, True)
+    specific_fine_healpix_id = hp.ang2pix(1024, r, d, False, lonlat=True)
     
     
     j = 0
     for f in sorted(glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.glimpse.out.fits")):
         (ra, dec, kappa) = get_from_glimpse(f)
         range_k = np.arange(len(kappa))
-        fine_healpix_id = hp.pixelfunc.ang2pix(1024, ra, dec, lonlat = True)
+        fine_healpix_id = hp.pixelfunc.ang2pix(1024, ra, dec, lonlat=True)
         filter = np.where(fine_healpix_id == specific_fine_healpix_id)
         num_in_fine_healpixel = len(ra[filter])
         if num_in_fine_healpixel > 0:
@@ -55,7 +55,7 @@ def kappa_values_in_one_fine_pixel():
 def tester():
     import healpy as hp
     (ra ,dec) = hp.pix2ang(16, 2218, False, True)
-    id = hp.ang2pix(1024, ra, dec, False, True)
+    id = hp.ang2pix(1024, ra, dec, False, lonlat=True)
     print(ra,dec,id)
     
 #"RA", "DEC", "true_z", "E1", "E2", "G1", "G2", "k_orig"
@@ -94,9 +94,7 @@ def save_buzzard_truth():
     (ra, dec, kappa) = get_fits_data(buzzard_data_file_name(), ["RA", "DEC", "k_orig"])
     num_buzzard_data = len(ra)
     print("num_buzzard_data = {}".format(num_buzzard_data))
-    print("About to call ang2pix...")
-    id = hp.ang2pix(nside, ra, dec, do_nest, True)
-    print("Finished call to ang2pix.")
+    id = hp.ang2pix(nside, ra, dec, do_nest, lonlat=True)
     i = 0
     for (this_id, this_kappa) in zip(id, kappa):
         sums[this_id] += this_kappa
@@ -114,46 +112,136 @@ def save_buzzard_truth():
     
     hp.write_map(filename, average_values, do_nest, overwrite=True)
     
-    
-def compare_two_healpix_maps():
+def fits_catalog_to_healpix_map(catalog_file_name, nside, do_nest):
 
     import healpy as hp
+    import numpy as np
+
+    (ra, dec) = get_fits_data(catalog_file_name, ["ra", "dec"])
+    
+    num_healpixels = hp.nside2npix(nside)
+    res = np.zeros(num_healpixels)
+    ids = hp.ang2pix(nside, ra, dec, do_nest, lonlat=True)
+    for id in ids:
+        res[id] += 1.0
+    return res    
+    
+def glimpse_output_to_healpix_map(glimpse_output_file, nside, do_nest):
+
+    import healpy as hp
+    import numpy as np
+    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
+    
+    num_healpixels = hp.nside2npix(nside)
+    weighted_values = np.zeros(num_healpixels)
+    weights = np.zeros(num_healpixels)
+    ids = hp.ang2pix(nside, ra, dec, do_nest, lonlat=True)
+    for (id, k) in zip(ids, kappa):
+        weighted_values[id] += k
+        weights[id] += 1.0
+    return np.divide(weighted_values, weights, out=np.zeros_like(weights, dtype=float), where=weights!=0.0)
+    
+def one_pixel_healpix_map(ra, dec, nside, do_nest):
+
+    import healpy as hp
+    import numpy as np
+    
+    num_healpixels = hp.nside2npix(nside)
+    values = np.zeros(num_healpixels)
+
+    index = hp.ang2pix(nside, ra, dec, do_nest, lonlat=True)
+    values[index] = 1.0
+    
+    return values
+    
+    
+    
+# return 0 if the absolute difference is small, else return percentage difference.    
+def comparison_function(x, y, tolerance):
+    import numpy as np
+    r = np.divide((x-y), y, out=np.zeros_like(y, dtype=float), where=y!=0.0)
+    r[np.where(np.abs(x-y)<=tolerance)] = 0.0
+    return r
+    
+    
+    
+def plot_several_healpix_maps():
+
+    import healpy as hp
+    import numpy as np
     import matplotlib.pyplot as plt
     
-    nside = 512
+    nside = 1024
 
-    path = "/share/splinter/ucapwhi/glimpse_project/output/"
-    filenames = ["Buzzard_192.nside" + str(nside) + "_merged_B_values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
-    
-    show_weights = True
-    if show_weights:
-        filenames.append("Buzzard_192.nside" + str(nside) + "_merged_B_weights.dat")
-    
     maps = []
     titles = []
+
+    # 1. maps from files
+    path = "/share/splinter/ucapwhi/glimpse_project/output/"
+    #filenames = ["Buzzard_192.nside" + str(nside) + "_merged_B_values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
+    #filenames = ["foo2_values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
+    filenames = ["foo1_values.dat", "foo2_values.dat"]
+    
+    
+    weight_maps = [0, 1]
+    for i in weight_maps:
+        # Also show weights
+        filenames.append(filenames[i].replace("_values", "_weights"))
+        
+    masked_maps = [0, 1]
+    for i in weight_maps:
+        filenames[i] = filenames[i].replace("_values", "_values_masked")
+    
+    
     for f in filenames:
         maps.append(hp.read_map(path + f))
         titles.append(f)
         
-    smooth_truth = True
-    if smooth_truth:
+    # 2. other maps
+        
+    if False:
+        # Also plot glimpse input data
+        f = "Buzzard_192.1440.glimpse.cat.fits"
+        maps.append(fits_catalog_to_healpix_map(path + f, nside, False))
+        titles.append(f)
+    
+    if False:
+        # Also plot glimpse output lattice
+        f = "Buzzard_192.1440.glimpse.out.fits"
+        maps.append(glimpse_output_to_healpix_map(path + f, nside*8, False))
+        titles.append(f)
+        
+    if True:
+        # Also plot just one healpixel
+        ra = 0.4464
+        dec = -0.2678
+        maps.append(one_pixel_healpix_map(ra, dec, nside, False))
+        titles.append("RA={}; DEC={}; pixel_id={}".format(ra, dec, hp.ang2pix(nside, ra, dec, nest=False, lonlat=True)))
+        
+
+    # To smooth a map, include in maps_to_smooth the index of the map (i.e. the map's index in the array 'maps') 
+    maps_to_smooth = []
+    for i in maps_to_smooth:
         one_arcmin_in_radians = 0.000290888
         smoothing_scale_in_arcmin = 7.0
-        maps[1] = hp.smoothing(maps[1], sigma = smoothing_scale_in_arcmin * one_arcmin_in_radians)
-        titles[1] += " smoothed at {} arcmin".format(smoothing_scale_in_arcmin)
+        maps[i] = hp.smoothing(maps[i], sigma = smoothing_scale_in_arcmin * one_arcmin_in_radians)
+        titles[i] += " smoothed at {} arcmin".format(smoothing_scale_in_arcmin)
     
-    show_diff = False
-    if show_diff:
-        maps.append(maps[0]-maps[1])
-        titles.append("Diff")
     
-    show_weights = True
-        
+    if True:
+        # Show diff between maps[0] and maps[1]
+        tolerance = 0.0009 # 0.0012 is the best so far
+        percentage_diff = comparison_function(maps[0], maps[1], tolerance)
+        maps.append(percentage_diff)
+        titles.append("Percentage difference")
     
     
     for map, title, i in zip(maps, titles, range(len(maps))):
-        #hp.mollview(map, fig=i, title=title)
-        hp.gnomview(map, fig=i, title=title, reso=2.0)
+        if False:
+            #hp.mollview(map, fig=i, title=title)
+            pass
+        else:
+            hp.gnomview(map, fig=i, title=title, reso=0.5, xsize=400)
         hp.graticule()
     
     plt.show()
@@ -167,19 +255,26 @@ def clean_up_edges():
     
     do_nest = False
     
-    nside = 512
-
     path = "/share/splinter/ucapwhi/glimpse_project/output/"
-    old_filename = "Buzzard_192.nside" + str(nside) + "_merged_B_values.dat"
-    new_filename = "Buzzard_192.nside" + str(nside) + "_merged_B_values_masked.dat"
-    new_filename_png = "Buzzard_192.nside" + str(nside) + "_merged_B_values_masked.png"
+    
+    nside = 1024
+
+    if False:
+        old_filename = "Buzzard_192.nside" + str(nside) + "_merged_B_values.dat"
+        new_filename = "Buzzard_192.nside" + str(nside) + "_merged_B_values_masked.dat"
+        new_filename_png = "Buzzard_192.nside" + str(nside) + "_merged_B_values_masked.png"
+    else:
+        old_filename = "foo2_values.dat"
+        new_filename = "foo2_values_masked.dat"
+        new_filename_png = "foo2_values_masked.png"
+    
     
     m = hp.read_map(path + old_filename)
     (ra, dec) = get_fits_data(buzzard_data_file_name(), ["RA", "DEC"])
     
     # Create a mask that is zero in healpixels where there are no source galaxies and one elsewhere.
     
-    ids = hp.ang2pix(nside, ra, dec, do_nest, True)
+    ids = hp.ang2pix(nside, ra, dec, do_nest, lonlat=True)
     mask = np.zeros(hp.nside2npix(nside))
     for id in ids:
         mask[id] = 1.0 
@@ -261,10 +356,70 @@ def sphere_to_tangent_plane_mapping_test_harness():
         
     
     
+def memory_test():
 
+    import healpy as hp
+    import numpy as np
     
-            
+    nside = 1024*4
     
+    num_healpixels = hp.nside2npix(nside)
+    
+    print("nside = {}".format(nside))
+    print("About to allocate memory...")
+    array = np.zeros(num_healpixels)
+    print("Finished allocating memory.")
+    
+    
+    
+def int_test():
+    import numpy as np
+    print(int(np.floor(-0.2)))
+    
+    
+def bound_between(x, lower, upper):
+    import numpy as np
+    return np.minimum(np.maximum(x, lower), upper)
+
+
+def index_into_glimpse_array_test_harness():
+    import numpy as np
+    p_shape = [6, 6]
+    
+    glimpse_lattice_spacing = 1.2
+    
+    x = 0.001
+    y = 0.001
+    print(x,y)
+    print(bound_between(p_shape[0]//2 + np.floor(x / glimpse_lattice_spacing), 0, p_shape[0]-1) + \
+                p_shape[0] * bound_between(p_shape[1]//2 - np.floor(y / glimpse_lattice_spacing) - 1, 0, p_shape[1]-1))
+    
+    
+
+def ra_dec_to_healpixel_id_test_harness():
+    import healpy as hp
+    import numpy as np
+    
+    ra = 0.4464
+    dec = -0.2678
+    nest = False
+    nside = 1024
+    
+    print(hp.ang2pix(nside, ra, dec, nest, lonlat=True))
+    
+    
+# One-time test; see p GL97.
+def glimpse_array_order():
+    import healpy as hp
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    glimpse_output_file = "/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.1440.glimpse.out.fits"
+    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
+    
+    plt.plot(ra[:1000], c='red')
+    plt.plot(dec[:1000], c='blue')
+    plt.show()
     
     
 
@@ -275,6 +430,12 @@ if __name__ == '__main__':
     #kappa_values_in_one_fine_pixel()
     #tester()
     #save_buzzard_truth()
-    #compare_two_healpix_maps()
     #clean_up_edges()
-    sphere_to_tangent_plane_mapping_test_harness()
+    #sphere_to_tangent_plane_mapping_test_harness()
+    #memory_test()
+    #int_test()
+    #index_into_glimpse_array_test_harness()
+    #ra_dec_to_healpixel_id_test_harness()
+    
+    plot_several_healpix_maps()
+    
