@@ -141,7 +141,160 @@ def glimpse_output_to_healpix_map(glimpse_output_file, nside, do_nest):
         weights[id] += 1.0
     return np.divide(weighted_values, weights, out=np.zeros_like(weights, dtype=float), where=weights!=0.0)
     
-def one_pixel_healpix_map(ra, dec, nside, do_nest):
+def glimpse_lattice_points_to_healpix_map(glimpse_output_file, nside, do_nest):
+
+    import healpy as hp
+    import numpy as np
+    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
+    
+    num_healpixels = hp.nside2npix(nside)
+    ret = np.zeros(num_healpixels)
+    ids = hp.ang2pix(nside, ra, dec, do_nest, lonlat=True)
+    for id in ids:
+        ret[id] = 1.0
+    return ret
+
+# Cleanup ra_rad so that it luies in [0, 2pi)
+def cleanup_ra(ra_rad):
+    import numpy as np
+    two_pi = 2.0 * np.pi
+    ret = ra_rad
+    ret[np.where(ret >= two_pi)] -= two_pi
+    ret[np.where(ret < 0.0)] += two_pi
+    return ret
+    
+# See LW's book p. 114.
+# Direction = 1.0 for clockwise on the sky, -1.0 for anticlockwise on the sky
+# Rotates about (0, 0)
+def rotate_45_degrees(ra_rad, dec_rad, direction):
+    import numpy as np
+    ra_rotated_rad = np.arctan2((np.cos(dec_rad) * np.sin(ra_rad) - direction * np.sin(dec_rad)) * np.sqrt(2.0) / 2.0, np.cos(dec_rad) * np.cos(ra_rad))
+    dec_rotated_rad = np.arcsin((np.sin(dec_rad) + direction * np.cos(dec_rad) * np.sin(ra_rad)) * np.sqrt(2.0) / 2.0)
+    return (ra_rotated_rad, dec_rotated_rad)
+
+
+
+
+def to_standard_position(ra, dec, ra_centre, dec_centre):
+    import numpy as np
+    
+    ra_rad = np.radians(ra)
+    dec_rad = np.radians(dec)
+    ra_centre_rad = np.radians(ra_centre)
+    dec_centre_rad = np.radians(dec_centre)
+    
+    # Move (ra_centre, dec_centre) to (0, 0)
+    # See LW's book p. 78
+    ra_shifted_rad = np.arctan2(np.cos(dec_rad) * np.sin(ra_rad - ra_centre_rad), np.cos(dec_rad) * np.cos(dec_centre_rad) * np.cos(ra_rad - ra_centre_rad) + np.sin(dec_rad) * np.sin(dec_centre_rad))
+    dec_shifted_rad = np.arcsin(np.sin(dec_rad) * np.cos(dec_centre_rad) - np.cos(dec_rad) * np.sin(dec_centre_rad) * np.cos(ra_rad - ra_centre_rad))
+    
+    # Rotate by 45 degrees
+    (ra_shifted_rotated_rad, dec_shifted_rotated_rad) = rotate_45_degrees(ra_shifted_rad, dec_shifted_rad, 1.0)
+    
+    # Move (0, 0) to (pi, 0) and cleanup RA to be in [0, 2pi).
+    ra_shifted_rotated_rad += np.pi
+    ra_shifted_rotated_rad = cleanup_ra(ra_shifted_rotated_rad)
+    
+    ra_shifted_rotated = np.degrees(ra_shifted_rotated_rad)
+    dec_shifted_rotated = np.degrees(dec_shifted_rotated_rad)
+    
+    return (ra_shifted_rotated, dec_shifted_rotated)
+    
+    
+def to_standard_position_test_harness():
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    ra_centre = 72.0
+    dec_centre = -88.0
+    
+    #ra = np.linspace(0.0, 359.0, num = 360)
+    #dec = ra * 0 + 1.0
+    
+    theta = np.linspace(0.0, 2.0 * np.pi, num = 360, endpoint=False)
+    r = 10.0
+    ra = ra_centre + r * np.cos(theta)
+    dec = dec_centre + r * np.sin(theta)
+    
+    (ra_new, dec_new) = to_standard_position(ra, dec, ra_centre, dec_centre)
+    
+    plt.scatter(ra_new, dec_new, c = theta)
+    plt.show()
+
+    
+def from_standard_position(ra, dec, ra_centre, dec_centre):
+    import numpy as np
+    
+    ra_rad = np.radians(ra)
+    dec_rad = np.radians(dec)
+    ra_centre_rad = np.radians(ra_centre)
+    dec_centre_rad = np.radians(dec_centre)
+
+    # Move (pi, 0) to (0, 0) and cleanup RA to be in [0, 2pi).
+    ra_rad += np.pi
+    #ra_rad = cleanup_ra(ra_rad)
+    #print("****************")
+    #print(ra_rad)
+    #print("****************")
+
+    # Rotate by -45 degrees
+    (ra_rotated_rad, dec_rotated_rad) = rotate_45_degrees(ra_rad, dec_rad, -1.0)
+    
+    # Move (0, 0) to (ra_centre, dec_centre). See LW's notes p. 85.
+    ra_rotated_shifted_rad = ra_centre_rad + np.arctan2(np.cos(dec_rotated_rad) * np.sin(ra_rotated_rad), np.cos(dec_rotated_rad) * np.cos(dec_centre_rad) * np.cos(ra_rotated_rad) - np.sin(dec_rotated_rad) * np.sin(dec_centre_rad))
+    dec_rotated_shifted_rad = np.arcsin(np.sin(dec_rotated_rad) * np.cos(dec_centre_rad) + np.cos(dec_rotated_rad) * np.sin(dec_centre_rad) * np.cos(ra_rotated_rad))
+    
+    ra_rotated_shifted_rad = cleanup_ra(ra_rotated_shifted_rad)
+    
+    ra_rotated_shifted = np.degrees(ra_rotated_shifted_rad)
+    dec_rotated_shifted = np.degrees(dec_rotated_shifted_rad)
+    
+    return (ra_rotated_shifted, dec_rotated_shifted)
+    
+
+def from_standard_position_test_harness():
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    ra_centre = 72.0
+    dec_centre = -38.0
+    
+    #ra = np.linspace(0.0, 359.0, num = 360)
+    #dec = ra * 0 + 1.0
+    
+    theta = np.linspace(0.0, 2.0 * np.pi, num = 360, endpoint=False) + np.pi/4.0
+    r = 10.0
+    ra = r * np.cos(theta) + 180.0
+    dec = r * np.sin(theta)
+    
+    (ra_new, dec_new) = from_standard_position(ra, dec, ra_centre, dec_centre)
+    
+    plt.scatter(ra_new, dec_new, c = theta)
+    plt.show()
+    
+    
+def to_from_standard_position_test_harness():
+    
+    import numpy as np
+    
+    num_tests = 1000000
+
+    ra = np.random.uniform(size=num_tests) * 360.0
+    dec = np.random.uniform(size=num_tests) * 180.0 - 90.0
+    ra_centre = np.random.uniform() * 360.0
+    dec_centre = np.random.uniform() * 180.0 - 90.0
+    
+    (ra_new, dec_new) = from_standard_position(ra, dec, ra_centre, dec_centre)
+    (ra_new_new, dec_new_new) = to_standard_position(ra_new, dec_new, ra_centre, dec_centre)
+    error = np.sqrt((ra_new_new - ra)**2 + (dec_new_new - dec)**2)
+    print(np.max(error))
+
+    
+
+
+def one_pixel_healpix_map(nside, ra, dec, do_nest):
 
     import healpy as hp
     import numpy as np
@@ -180,42 +333,51 @@ def plot_several_healpix_maps():
     path = "/share/splinter/ucapwhi/glimpse_project/output/"
     #filenames = ["Buzzard_192.nside" + str(nside) + "_merged_B_values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
     #filenames = ["foo2_values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
-    filenames = ["foo1_values.dat", "foo2_values.dat"]
+    #filenames = ["foo1_values.dat", "foo2_values.dat"]
+    #filenames = ["foo2218_values.dat", "foo1440_values.dat"]
+    filenames = ["foo2218_values.dat",]
     
     
-    weight_maps = [0, 1]
+    weight_maps = [0]
     for i in weight_maps:
         # Also show weights
         filenames.append(filenames[i].replace("_values", "_weights"))
         
-    masked_maps = [0, 1]
-    for i in weight_maps:
+    masked_maps = []
+    for i in masked_maps:
         filenames[i] = filenames[i].replace("_values", "_values_masked")
     
     
     for f in filenames:
+        print("Using file {}".format(f))
         maps.append(hp.read_map(path + f))
         titles.append(f)
         
     # 2. other maps
         
-    if False:
-        # Also plot glimpse input data
-        f = "Buzzard_192.1440.glimpse.cat.fits"
+    if True:
+        # Also plot some glimpse input data
+        f = "Buzzard_192.2218.glimpse.cat.fits"
         maps.append(fits_catalog_to_healpix_map(path + f, nside, False))
         titles.append(f)
     
-    if False:
+    if True:
         # Also plot glimpse output lattice
-        f = "Buzzard_192.1440.glimpse.out.fits"
-        maps.append(glimpse_output_to_healpix_map(path + f, nside*8, False))
-        titles.append(f)
+        f = "Buzzard_192.2218.glimpse.out.fits"
+        maps.append(glimpse_output_to_healpix_map(path + f, nside*4, False))
+        titles.append(f + " values")
+        
+    if True:
+        # Also plot glimpse lattice points
+        f = "Buzzard_192.2218.glimpse.out.fits"
+        maps.append(glimpse_lattice_points_to_healpix_map(path + f, nside*4, False))
+        titles.append(f + " lattice points")
         
     if True:
         # Also plot just one healpixel
-        ra = 0.4464
-        dec = -0.2678
-        maps.append(one_pixel_healpix_map(ra, dec, nside, False))
+        ra = 56.25
+        dec = -27.2796127
+        maps.append(one_pixel_healpix_map(nside, ra, dec, False))
         titles.append("RA={}; DEC={}; pixel_id={}".format(ra, dec, hp.ang2pix(nside, ra, dec, nest=False, lonlat=True)))
         
 
@@ -228,7 +390,7 @@ def plot_several_healpix_maps():
         titles[i] += " smoothed at {} arcmin".format(smoothing_scale_in_arcmin)
     
     
-    if True:
+    if False:
         # Show diff between maps[0] and maps[1]
         tolerance = 0.0009 # 0.0012 is the best so far
         percentage_diff = comparison_function(maps[0], maps[1], tolerance)
@@ -241,7 +403,8 @@ def plot_several_healpix_maps():
             #hp.mollview(map, fig=i, title=title)
             pass
         else:
-            hp.gnomview(map, fig=i, title=title, reso=0.5, xsize=400)
+            rot = (56.25, -27.2796127, 0.0)
+            hp.gnomview(map, fig=i, rot=rot, title=title, reso=5.0, xsize=400)
         hp.graticule()
     
     plt.show()
@@ -421,6 +584,15 @@ def glimpse_array_order():
     plt.plot(dec[:1000], c='blue')
     plt.show()
     
+
+def foo123():
+
+    import numpy as np
+    
+    a = np.linspace(1.0, 10.0, 10)
+    
+    a[np.where(a>14.0)] = 5.5
+    print(a)
     
 
 
@@ -437,5 +609,8 @@ if __name__ == '__main__':
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
     
-    plot_several_healpix_maps()
-    
+    #plot_several_healpix_maps()
+    #to_standard_position_test_harness()
+    #from_standard_position_test_harness()
+    to_from_standard_position_test_harness()
+    #foo123()
