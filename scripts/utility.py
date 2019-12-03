@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # Copied from view_glimpse, and amended
 def get_from_glimpse(glimpse_output_file):
@@ -168,11 +169,20 @@ def cleanup_ra(ra_rad):
 # Rotates about (0, 0)
 def rotate_45_degrees(ra_rad, dec_rad, direction):
     import numpy as np
-    ra_rotated_rad = np.arctan2((np.cos(dec_rad) * np.sin(ra_rad) - direction * np.sin(dec_rad)) * np.sqrt(2.0) / 2.0, np.cos(dec_rad) * np.cos(ra_rad))
-    dec_rotated_rad = np.arcsin((np.sin(dec_rad) + direction * np.cos(dec_rad) * np.sin(ra_rad)) * np.sqrt(2.0) / 2.0)
+
+    sin_dec = np.sin(dec_rad)
+    cos_dec = np.cos(dec_rad)
+    sin_ra = np.sin(ra_rad)
+    cos_ra = np.cos(ra_rad)
+
+    ra_rotated_rad = np.arctan2((cos_dec * sin_ra - direction * sin_dec) * np.sqrt(2.0) / 2.0, cos_dec * cos_ra)
+    dec_rotated_rad = np.arcsin((sin_dec + direction * cos_dec * sin_ra) * np.sqrt(2.0) / 2.0)
     return (ra_rotated_rad, dec_rotated_rad)
+    
 
-
+def rotate_shear_45_degrees(e1, e2):
+    # See LW's notes p. 107.
+    return (e2, -e1)
 
 
 def to_standard_position(ra, dec, ra_centre, dec_centre):
@@ -185,8 +195,12 @@ def to_standard_position(ra, dec, ra_centre, dec_centre):
     
     # Move (ra_centre, dec_centre) to (0, 0)
     # See LW's book p. 78
-    ra_shifted_rad = np.arctan2(np.cos(dec_rad) * np.sin(ra_rad - ra_centre_rad), np.cos(dec_rad) * np.cos(dec_centre_rad) * np.cos(ra_rad - ra_centre_rad) + np.sin(dec_rad) * np.sin(dec_centre_rad))
-    dec_shifted_rad = np.arcsin(np.sin(dec_rad) * np.cos(dec_centre_rad) - np.cos(dec_rad) * np.sin(dec_centre_rad) * np.cos(ra_rad - ra_centre_rad))
+    sin_dec = np.sin(dec_rad)
+    cos_dec = np.cos(dec_rad)
+    sin_ra_diff = np.sin(ra_rad - ra_centre_rad)
+    cos_ra_diff = np.cos(ra_rad - ra_centre_rad)
+    ra_shifted_rad = np.arctan2(cos_dec * sin_ra_diff, cos_dec * np.cos(dec_centre_rad) * cos_ra_diff + sin_dec * np.sin(dec_centre_rad))
+    dec_shifted_rad = np.arcsin(sin_dec * np.cos(dec_centre_rad) - cos_dec * np.sin(dec_centre_rad) * cos_ra_diff)
     
     # Rotate by 45 degrees
     (ra_shifted_rotated_rad, dec_shifted_rotated_rad) = rotate_45_degrees(ra_shifted_rad, dec_shifted_rad, 1.0)
@@ -200,7 +214,36 @@ def to_standard_position(ra, dec, ra_centre, dec_centre):
     
     return (ra_shifted_rotated, dec_shifted_rotated)
     
+  
+
     
+def from_standard_position(ra, dec, ra_centre, dec_centre):
+    import numpy as np
+    
+    ra_rad = np.radians(ra)
+    dec_rad = np.radians(dec)
+    ra_centre_rad = np.radians(ra_centre)
+    dec_centre_rad = np.radians(dec_centre)
+
+    # Move (pi, 0) to (0, 0)
+    ra_rad += np.pi
+
+    # Rotate by -45 degrees
+    (ra_rotated_rad, dec_rotated_rad) = rotate_45_degrees(ra_rad, dec_rad, -1.0)
+    
+    # Move (0, 0) to (ra_centre, dec_centre). See LW's notes p. 85.
+    ra_rotated_shifted_rad = ra_centre_rad + np.arctan2(np.cos(dec_rotated_rad) * np.sin(ra_rotated_rad), np.cos(dec_rotated_rad) * np.cos(dec_centre_rad) * np.cos(ra_rotated_rad) - np.sin(dec_rotated_rad) * np.sin(dec_centre_rad))
+    dec_rotated_shifted_rad = np.arcsin(np.sin(dec_rotated_rad) * np.cos(dec_centre_rad) + np.cos(dec_rotated_rad) * np.sin(dec_centre_rad) * np.cos(ra_rotated_rad))
+    
+    # Cleanup RA into [0, 2pi)
+    ra_rotated_shifted_rad = cleanup_ra(ra_rotated_shifted_rad)
+    
+    ra_rotated_shifted = np.degrees(ra_rotated_shifted_rad)
+    dec_rotated_shifted = np.degrees(dec_rotated_shifted_rad)
+    
+    return (ra_rotated_shifted, dec_rotated_shifted)
+    
+
 def to_standard_position_test_harness():
 
     import numpy as np
@@ -221,37 +264,6 @@ def to_standard_position_test_harness():
     
     plt.scatter(ra_new, dec_new, c = theta)
     plt.show()
-
-    
-def from_standard_position(ra, dec, ra_centre, dec_centre):
-    import numpy as np
-    
-    ra_rad = np.radians(ra)
-    dec_rad = np.radians(dec)
-    ra_centre_rad = np.radians(ra_centre)
-    dec_centre_rad = np.radians(dec_centre)
-
-    # Move (pi, 0) to (0, 0) and cleanup RA to be in [0, 2pi).
-    ra_rad += np.pi
-    #ra_rad = cleanup_ra(ra_rad)
-    #print("****************")
-    #print(ra_rad)
-    #print("****************")
-
-    # Rotate by -45 degrees
-    (ra_rotated_rad, dec_rotated_rad) = rotate_45_degrees(ra_rad, dec_rad, -1.0)
-    
-    # Move (0, 0) to (ra_centre, dec_centre). See LW's notes p. 85.
-    ra_rotated_shifted_rad = ra_centre_rad + np.arctan2(np.cos(dec_rotated_rad) * np.sin(ra_rotated_rad), np.cos(dec_rotated_rad) * np.cos(dec_centre_rad) * np.cos(ra_rotated_rad) - np.sin(dec_rotated_rad) * np.sin(dec_centre_rad))
-    dec_rotated_shifted_rad = np.arcsin(np.sin(dec_rotated_rad) * np.cos(dec_centre_rad) + np.cos(dec_rotated_rad) * np.sin(dec_centre_rad) * np.cos(ra_rotated_rad))
-    
-    ra_rotated_shifted_rad = cleanup_ra(ra_rotated_shifted_rad)
-    
-    ra_rotated_shifted = np.degrees(ra_rotated_shifted_rad)
-    dec_rotated_shifted = np.degrees(dec_rotated_shifted_rad)
-    
-    return (ra_rotated_shifted, dec_rotated_shifted)
-    
 
 def from_standard_position_test_harness():
 
@@ -306,6 +318,11 @@ def one_pixel_healpix_map(nside, ra, dec, do_nest):
     values[index] = 1.0
     
     return values
+    
+    
+def is_in_standard_cutout(ra, dec, side_in_degrees):
+    import numpy as np
+    return np.where(np.logical_and((np.abs(ra - 180.0) < 0.5*side_in_degrees), (np.abs(dec - 0.0) < 0.5*side_in_degrees)))
     
     
     
@@ -519,26 +536,6 @@ def sphere_to_tangent_plane_mapping_test_harness():
         
     
     
-def memory_test():
-
-    import healpy as hp
-    import numpy as np
-    
-    nside = 1024*4
-    
-    num_healpixels = hp.nside2npix(nside)
-    
-    print("nside = {}".format(nside))
-    print("About to allocate memory...")
-    array = np.zeros(num_healpixels)
-    print("Finished allocating memory.")
-    
-    
-    
-def int_test():
-    import numpy as np
-    print(int(np.floor(-0.2)))
-    
     
 def bound_between(x, lower, upper):
     import numpy as np
@@ -585,16 +582,139 @@ def glimpse_array_order():
     plt.show()
     
 
-def foo123():
+# No error if directory already exists
+# See https://stackoverflow.com/questions/273192
+def create_directory_if_necessary(directory_name):
+    import os, errno
+    try:
+        os.makedirs(directory_name)
+    except OSError as err:
+        if err.errno != errno.EEXIST:
+            raise
 
+# percentage should be an integer e.g. 60 for 60%. Enter a negative number to clean-up at the end.
+def update_percentage_bar(percentage):
+    import sys
+    if percentage >= 0:
+        sys.stdout.write('\r' + str(percentage).rjust(3) + r'%' + ' ' * percentage + '█' * (100 - percentage) + ' ')
+        sys.stdout.flush()
+    else:
+        sys.stdout.write('\r' + str(100) + r'%' + ' ' * 105)
+        sys.stdout.flush()
+        print('\n')
+
+
+
+
+
+def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root):
+
+    from astropy.table import Table
+    import healpy as hp
     import numpy as np
+    import math
+    import astropy.io.fits as pyfits
+    import sys
     
-    a = np.linspace(1.0, 10.0, 10)
+    create_directory_if_necessary(output_directory)
+    assert catformat in ("csv", "fits"), "Catalogue format must be either 'fits' or 'csv'; {0} was given".format(catformat)
+    assert hp.isnsideok(nside), "nside must be a valid Healpix nside"
     
-    a[np.where(a>14.0)] = 5.5
-    print(a)
+    all_field_names = [raname, decname]
+    if other_field_names:
+        all_field_names.extend(other_field_names.split(","))
+    if shear_names:
+        parsed_shear_names = shear_names.split(",")
+        assert (len(parsed_shear_names)%2==0), "shear_names should be omitted or be a comma-separated list of (an even number of) field names"
+        all_field_names.extend(parsed_shear_names)
     
+    print('Processing ' + input_catalogue + '...')
+    data = Table.read(input_catalogue, format=catformat)
+    for field_name in all_field_names:
+        assert field_name in data.colnames, "{0} is not a column in the input file {1}".format(field_name, input_catalogue)
+    data = data[all_field_names]
+        
+    ra = data[raname]
+    dec = data[decname]
+    
+    assert (all(ra >= 0.0) and all(ra <= 360.0)), "RA should be decimal degrees between 0 and 360."
+    assert (all(dec >= -90.0) and all(dec <= 90.0)), "Dec should be decimal degrees between -90 and 90."
+    
+    num_healpixels = hp.nside2npix(nside)
+    num_digits = 1 + int(math.log10(num_healpixels))
+        
+    print('Creating output files...')
+    old_percentage = -1
+    loop_length = num_healpixels
+    i = 0
+    for healpix_id in np.arange(num_healpixels) + 1384:
+        print("Processing {} of {}".format(healpix_id, num_healpixels))
+        
+        # Progress bar
+        percentage = int(100*(i+1)/float(loop_length))
+        if percentage > old_percentage:
+            #update_percentage_bar(percentage)
+            old_percentage = percentage
+        
+        
+        
+        (ra_centre, dec_centre) = hp.pix2ang(nside, healpix_id, nest, lonlat=True)
+        
+        # Put the data in standard position relative to this centre point
+        print("Standardising...")
+        (ra_standardised, dec_standardised) = to_standard_position(ra, dec, ra_centre, dec_centre)
+        
+        # Which data lie in the standard cutout?
+        print("Filtering...")
+        filter = is_in_standard_cutout(ra_standardised, dec_standardised, cutout_side_in_degrees)
+        
+        if filter[0].size > 0:
+            # Some galaxies to write
+            print("Writing...")
+            output_file_name = (output_directory + "/" + output_file_root).format(str(healpix_id).zfill(num_digits))
+            
+            column_info = []
+            column_info.append(pyfits.Column(name=raname, format='D', array=ra_standardised[filter]))
+            column_info.append(pyfits.Column(name=decname, format='D', array=dec_standardised[filter]))
+            
+            if shear_names:
+                parsed_shear_names = shear_names.split(",")
+                for (shear_name_1, shear_name_2) in zip(parsed_shear_names[0::2], parsed_shear_names[1::2]):
+                    print(shear_name_1, shear_name_2)
+                    (shear1, shear2) = rotate_shear_45_degrees(data[shear_name_1], data[shear_name_2])
+                    column_info.append(pyfits.Column(name=shear_name_1, format='D', array=shear1[filter]))
+                    column_info.append(pyfits.Column(name=shear_name_2, format='D', array=shear2[filter]))
+            
+            for f in other_field_names.split(","):
+                column_info.append(pyfits.Column(name=f, format='D', array=data[f][filter]))
 
+            tbhdu = pyfits.BinTableHDU.from_columns(column_info)
+            tbhdu.writeto(output_file_name, overwrite=True)
+            if True:
+                update_percentage_bar(-1)
+                sys.exit()
+            
+        
+        i += 1
+       
+    update_percentage_bar(-1)
+
+
+def create_cutouts_test_harness():
+
+    input_catalogue = buzzard_data_file_name()
+    catformat = "fits"
+    raname = "RA"
+    decname = "DEC"
+    shear_names = "E1,E2"
+    other_field_names = "true_z"
+    nside = 16
+    nest = False
+    cutout_side_in_degrees = 16
+    output_directory = "/share/splinter/ucapwhi/glimpse_project/output1"
+    output_file_root = "foo.{}.glimpse.cat.fits"
+
+    create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root)
 
 if __name__ == '__main__':
 
@@ -604,13 +724,11 @@ if __name__ == '__main__':
     #save_buzzard_truth()
     #clean_up_edges()
     #sphere_to_tangent_plane_mapping_test_harness()
-    #memory_test()
-    #int_test()
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
     
     #plot_several_healpix_maps()
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
-    to_from_standard_position_test_harness()
-    #foo123()
+    #to_from_standard_position_test_harness()
+    create_cutouts_test_harness()
