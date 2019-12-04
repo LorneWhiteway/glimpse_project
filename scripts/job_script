@@ -7,8 +7,8 @@
 #SBATCH --mail-user=lorne.whiteway@star.ucl.ac.uk
 #SBATCH --mail-type=FAIL
 #SBATCH --job-name=glimpse
-#SBATCH --time=2:00:00
-#######SBATCH --output=/share/splinter/ucapwhi/glimpse_project/logs/log.txt
+#SBATCH --time=4:00:00
+########SBATCH --output=/share/splinter/ucapwhi/glimpse_project/logs/log.txt
 #SBATCH --mem-per-cpu=12000
 
 

@@ -155,7 +155,7 @@ def glimpse_lattice_points_to_healpix_map(glimpse_output_file, nside, do_nest):
         ret[id] = 1.0
     return ret
 
-# Cleanup ra_rad so that it luies in [0, 2pi)
+# Cleanup ra_rad so that it lies in [0, 2pi)
 def cleanup_ra(ra_rad):
     import numpy as np
     two_pi = 2.0 * np.pi
@@ -181,8 +181,8 @@ def rotate_45_degrees(ra_rad, dec_rad, direction):
     
 
 def rotate_shear_45_degrees(e1, e2):
-    # See LW's notes p. 107.
-    return (e2, -e1)
+    # See LW's notes p. 107 (and 122)
+    return (-e2, e1)
 
 
 def to_standard_position(ra, dec, ra_centre, dec_centre):
@@ -352,9 +352,9 @@ def plot_several_healpix_maps():
     #filenames = ["foo2_values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
     #filenames = ["foo1_values.dat", "foo2_values.dat"]
     #filenames = ["foo2218_values.dat", "foo1440_values.dat"]
-    #filenames = ["foo2218_values.dat",]
-    filenames = []
-    
+    #filenames = ["foo2218.A_values.dat", "foo2218.B_values.dat", "foo2218.C_values.dat", "foo2218.D_values.dat", "../output_old1/foo2218_values.dat", "../output_old1/Buzzard_192.nside" + str(nside) + "_truth.dat"]
+    filenames = ["foo2218.C_values.dat", "../output_old1/foo2218_values.dat", "../output_old1/Buzzard_192.nside" + str(nside) + "_truth.dat"]
+        
     
     weight_maps = []
     for i in weight_maps:
@@ -373,7 +373,7 @@ def plot_several_healpix_maps():
         
     # 2. other maps
         
-    if True:
+    if False:
         # Also plot some glimpse input data
         f = "Buzzard_192.2218.glimpse.cat.fits"
         maps.append(fits_catalog_to_healpix_map(path + f, nside, False))
@@ -385,7 +385,7 @@ def plot_several_healpix_maps():
         maps.append(glimpse_output_to_healpix_map(path + f, nside*4, False))
         titles.append(f + " values")
         
-    if True:
+    if False:
         # Also plot glimpse lattice points
         f = "Buzzard_192.2218.glimpse.out.fits"
         maps.append(glimpse_lattice_points_to_healpix_map(path + f, nside*4, False))
@@ -421,8 +421,8 @@ def plot_several_healpix_maps():
             #hp.mollview(map, fig=i, title=title)
             pass
         else:
-            rot = (180.0, 0.0, 0.0)
-            hp.gnomview(map, fig=i, rot=rot, title=title, reso=5.0, xsize=400)
+            rot = (56.25, -27.2796127, 0.0)
+            hp.gnomview(map, fig=i, rot=rot, title=title, reso=3.0, xsize=400)
         hp.graticule()
     
     plt.show()
@@ -701,6 +701,43 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
     update_percentage_bar(-1)
 
 
+
+# catalogue_filename will resemble ".../Buzzard_192.2766.glimpse.cat.fits"
+def correct_one_shear_catalogue(catalogue_filename):
+    
+    from astropy.table import Table
+    import astropy.io.fits as pyfits
+    
+    print("Processing {}...".format(catalogue_filename))
+    
+    output_filename = catalogue_filename.replace("/output/", "/output1/")
+    
+    data = Table.read(catalogue_filename, format="fits")
+        
+    ra = data["RA"]
+    dec = data["DEC"]
+    e1 = data["E1"]
+    e2 = data["E2"]
+    true_z = data["E2"]
+
+    column_info = []
+    column_info.append(pyfits.Column(name="RA", format='D', array=ra))
+    column_info.append(pyfits.Column(name="DEC", format='D', array=dec))
+    column_info.append(pyfits.Column(name="E1", format='D', array=-e1))
+    column_info.append(pyfits.Column(name="E2", format='D', array=-e2))
+    column_info.append(pyfits.Column(name="true_z", format='D', array=true_z))
+    tbhdu = pyfits.BinTableHDU.from_columns(column_info)
+    tbhdu.writeto(output_filename, overwrite=True)
+
+def correct_one_shear_catalogue_caller():
+    
+    import glob
+    filelist = glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.glimpse.cat.fits")
+    for f in filelist: 
+        correct_one_shear_catalogue(f)
+
+
+
 def create_cutouts_run():
 
     input_catalogue = buzzard_data_file_name()
@@ -727,9 +764,9 @@ if __name__ == '__main__':
     #sphere_to_tangent_plane_mapping_test_harness()
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
-    
-    plot_several_healpix_maps()
+    #plot_several_healpix_maps()
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()
     #create_cutouts_run()
+    correct_one_shear_catalogue_caller()
