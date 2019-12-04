@@ -6,20 +6,22 @@ def main(job_id):
     import glob
     import subprocess
     
-    glimpse_cat_file_pattern = "/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.glimpse.cat.fits"
+    output_directory = "/share/splinter/ucapwhi/glimpse_project/output1/"
+    project = "Buzzard_192"
+    exe_file = "/share/splinter/ucapwhi/glimpse_project/Glimpse/build/glimpse"
+    
+    glimpse_cat_file_pattern = output_directory + project + ".*.glimpse.cat.fits"
     id_list = [int(f.split(".")[1]) for f in glob.glob(glimpse_cat_file_pattern)]
     id_list.sort()
     this_healpix_pixel_id = id_list[job_id]
     
-    print("This healpix pixel id is " + str(this_healpix_pixel_id) + "...")
+    print("Healpixel id = {}...".format(this_healpix_pixel_id))
     
-    root = "/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192." + str(this_healpix_pixel_id).zfill(4)
+    root = output_directory + project + "." + str(this_healpix_pixel_id).zfill(4)
     
     ini_file = root + ".glimpse.ini"
     cat_file = root + ".glimpse.cat.fits"
     out_file = root + ".glimpse.out.fits"
-    
-    exe_file = "/share/splinter/ucapwhi/glimpse_project/Glimpse/build/glimpse"
     
     print("About to call " + exe_file)
     print("with options")
