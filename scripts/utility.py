@@ -352,10 +352,11 @@ def plot_several_healpix_maps():
     #filenames = ["foo2_values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
     #filenames = ["foo1_values.dat", "foo2_values.dat"]
     #filenames = ["foo2218_values.dat", "foo1440_values.dat"]
-    filenames = ["foo2218_values.dat",]
+    #filenames = ["foo2218_values.dat",]
+    filenames = []
     
     
-    weight_maps = [0]
+    weight_maps = []
     for i in weight_maps:
         # Also show weights
         filenames.append(filenames[i].replace("_values", "_weights"))
@@ -378,7 +379,7 @@ def plot_several_healpix_maps():
         maps.append(fits_catalog_to_healpix_map(path + f, nside, False))
         titles.append(f)
     
-    if True:
+    if False:
         # Also plot glimpse output lattice
         f = "Buzzard_192.2218.glimpse.out.fits"
         maps.append(glimpse_output_to_healpix_map(path + f, nside*4, False))
@@ -390,7 +391,7 @@ def plot_several_healpix_maps():
         maps.append(glimpse_lattice_points_to_healpix_map(path + f, nside*4, False))
         titles.append(f + " lattice points")
         
-    if True:
+    if False:
         # Also plot just one healpixel
         ra = 56.25
         dec = -27.2796127
@@ -420,7 +421,7 @@ def plot_several_healpix_maps():
             #hp.mollview(map, fig=i, title=title)
             pass
         else:
-            rot = (56.25, -27.2796127, 0.0)
+            rot = (180.0, 0.0, 0.0)
             hp.gnomview(map, fig=i, rot=rot, title=title, reso=5.0, xsize=400)
         hp.graticule()
     
@@ -700,7 +701,7 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
     update_percentage_bar(-1)
 
 
-def create_cutouts_test_harness():
+def create_cutouts_run():
 
     input_catalogue = buzzard_data_file_name()
     catformat = "fits"
@@ -711,7 +712,7 @@ def create_cutouts_test_harness():
     nside = 16
     nest = False
     cutout_side_in_degrees = 16
-    output_directory = "/share/splinter/ucapwhi/glimpse_project/output1"
+    output_directory = "/share/splinter/ucapwhi/glimpse_project/output"
     output_file_root = "Buzzard_192.{}.glimpse.cat.fits"
 
     create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root)
@@ -727,8 +728,8 @@ if __name__ == '__main__':
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
     
-    #plot_several_healpix_maps()
+    plot_several_healpix_maps()
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()
-    create_cutouts_test_harness()
+    #create_cutouts_run()

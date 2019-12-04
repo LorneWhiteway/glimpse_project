@@ -6,7 +6,7 @@ def main(job_id):
     import glob
     import subprocess
     
-    output_directory = "/share/splinter/ucapwhi/glimpse_project/output1/"
+    output_directory = "/share/splinter/ucapwhi/glimpse_project/output/"
     project = "Buzzard_192"
     exe_file = "/share/splinter/ucapwhi/glimpse_project/Glimpse/build/glimpse"
     
