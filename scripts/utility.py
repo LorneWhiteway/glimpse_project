@@ -647,7 +647,7 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
     old_percentage = -1
     loop_length = num_healpixels
     i = 0
-    for healpix_id in np.arange(num_healpixels) + 1384:
+    for healpix_id in np.arange(num_healpixels):
         print("Processing {} of {}".format(healpix_id, num_healpixels))
         
         # Progress bar
@@ -690,7 +690,7 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
 
             tbhdu = pyfits.BinTableHDU.from_columns(column_info)
             tbhdu.writeto(output_file_name, overwrite=True)
-            if True:
+            if False:
                 update_percentage_bar(-1)
                 sys.exit()
             
@@ -712,7 +712,7 @@ def create_cutouts_test_harness():
     nest = False
     cutout_side_in_degrees = 16
     output_directory = "/share/splinter/ucapwhi/glimpse_project/output1"
-    output_file_root = "foo.{}.glimpse.cat.fits"
+    output_file_root = "Buzzard_192.{}.glimpse.cat.fits"
 
     create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root)
 

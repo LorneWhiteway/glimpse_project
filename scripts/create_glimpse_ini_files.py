@@ -2,12 +2,16 @@
 
 # Expecting source_file_name to be of the form .../Buzzard_192.xxxx.glimpse.cat.fits
 # where xxxx is a healpix pixel id.
-def create_one_file(source_file_name, nside, nest=False):
+def create_one_file(source_file_name, nside, nest):
 
     import healpy as hp
 
     healpix_id = int(source_file_name.split(".")[1])
-    (centre_ra, centre_dec) = hp.pix2ang(nside, healpix_id, nest, True)
+    if False:
+        (centre_ra, centre_dec) = hp.pix2ang(nside, healpix_id, nest, True)
+    else:
+        (centre_ra, centre_dec) = (180.0, 0.0)
+    
     ini_filename = source_file_name.split(".cat.fits")[0] + ".ini"
     
     
@@ -46,11 +50,14 @@ def create_one_file(source_file_name, nside, nest=False):
 def run_create_ini_files():
     import glob
     
-    list_of_augmented_healpix_files = glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.glimpse.cat.fits")
+    glimpse_catalogue_files = glob.glob("/share/splinter/ucapwhi/glimpse_project/output1/Buzzard_192.*.glimpse.cat.fits")
     
-    for f in list_of_augmented_healpix_files:
-        print("Working on " + f + "...")
-        create_one_file(f, 16)
+    nside = 16
+    
+    num_glimpse_catalogue_files = len(glimpse_catalogue_files)
+    for (f, i) in zip(glimpse_catalogue_files, range(num_glimpse_catalogue_files)):
+        print("Working on {} ({} of {})...".format(f, i, num_glimpse_catalogue_files))
+        create_one_file(f, nside, nest=False)
         
         
 
