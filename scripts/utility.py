@@ -352,8 +352,7 @@ def plot_several_healpix_maps():
     #filenames = ["foo2_values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
     #filenames = ["foo1_values.dat", "foo2_values.dat"]
     #filenames = ["foo2218_values.dat", "foo1440_values.dat"]
-    #filenames = ["foo2218.A_values.dat", "foo2218.B_values.dat", "foo2218.C_values.dat", "foo2218.D_values.dat", "../output_old1/foo2218_values.dat", "../output_old1/Buzzard_192.nside" + str(nside) + "_truth.dat"]
-    filenames = ["foo2218.C_values.dat", "../output_old1/foo2218_values.dat", "../output_old1/Buzzard_192.nside" + str(nside) + "_truth.dat"]
+    filenames = ["glimpse_downsampled_1024_values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
         
     
     weight_maps = []
@@ -375,7 +374,7 @@ def plot_several_healpix_maps():
         
     if False:
         # Also plot some glimpse input data
-        f = "Buzzard_192.2218.glimpse.cat.fits"
+        f = "Buzzard_192.1440.glimpse.cat.fits"
         maps.append(fits_catalog_to_healpix_map(path + f, nside, False))
         titles.append(f)
     
@@ -422,7 +421,8 @@ def plot_several_healpix_maps():
             pass
         else:
             rot = (56.25, -27.2796127, 0.0)
-            hp.gnomview(map, fig=i, rot=rot, title=title, reso=3.0, xsize=400)
+            #rot = (0.0, 0.0, 0.0)
+            hp.gnomview(map, fig=i, rot=rot, title=title, reso=3.0, xsize=400) # , max=0.104, min=-0.0264)
         hp.graticule()
     
     plt.show()
@@ -754,6 +754,20 @@ def create_cutouts_run():
 
     create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root)
 
+
+def downgrade_map():
+    
+    import healpy as hp
+    path = "/share/splinter/ucapwhi/glimpse_project/output/"
+    f_in = "main_2048_values.dat"
+    f_out = "main_downsampled_1024_values.dat"
+    
+    
+    m = hp.read_map(path + f_in)
+    m_new = hp.ud_grade(m, 1024)
+    hp.write_map(path + f_out, m_new, overwrite=True)
+    
+
 if __name__ == '__main__':
 
     #print_list_of_healpixels()
@@ -764,9 +778,10 @@ if __name__ == '__main__':
     #sphere_to_tangent_plane_mapping_test_harness()
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
-    #plot_several_healpix_maps()
+    plot_several_healpix_maps()
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()
     #create_cutouts_run()
-    correct_one_shear_catalogue_caller()
+    #correct_one_shear_catalogue_caller()
+    #downgrade_map()
