@@ -23,13 +23,10 @@ def main(job_id):
     cat_file = root + ".glimpse.cat.fits"
     out_file = root + ".glimpse.out.fits"
     
-    print("About to call " + exe_file)
-    print("with options")
-    print(ini_file)
-    print(cat_file)
-    print(out_file)
-    run_info = subprocess.run([exe_file, ini_file, cat_file, out_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    print(run_info.stdout)
+    print("Root = {}".format(root))
+
+    subprocess.run([exe_file, ini_file, cat_file, out_file])
+
     print("Finished.")
     
     
