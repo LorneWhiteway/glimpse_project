@@ -85,9 +85,6 @@ def get_from_glimpse(file_root):
     ra = np.ndarray.flatten(pyfits.getdata(path, ext=1))
     dec = np.ndarray.flatten(pyfits.getdata(path, ext=2))
     kappa = np.ndarray.flatten(pyfits.getdata(path, ext=0))
-    #print("-------------------")
-    #print(pyfits.getdata(path, ext=0).shape)
-    #print("-------------------")
     return (ra, dec, kappa)
     
 def overall_min_and_max(a, b):
