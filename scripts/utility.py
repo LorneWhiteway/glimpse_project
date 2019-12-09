@@ -767,6 +767,23 @@ def downgrade_map():
     m_new = hp.ud_grade(m, 1024)
     hp.write_map(path + f_out, m_new, overwrite=True)
     
+    
+def redshift_histogram():
+    
+    import numpy as np
+    np.set_printoptions(precision=3)
+    
+    top_z = 2.5
+    
+    (ra, dec, true_z) = get_fits_data(buzzard_data_file_name(), ["RA", "DEC", "true_z"])
+    (hist, bin_edges) = np.histogram(true_z, np.linspace(0.0, top_z, int(100*top_z) + 1))
+    for (b0, b1, h) in zip(bin_edges[:-1], bin_edges[1:], hist):
+        print("{0:.2f}\t{1:.2f}\t{2:d}".format(b0, b1, h))
+
+    
+    
+    
+    
 
 if __name__ == '__main__':
 
@@ -778,10 +795,11 @@ if __name__ == '__main__':
     #sphere_to_tangent_plane_mapping_test_harness()
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
-    plot_several_healpix_maps()
+    #plot_several_healpix_maps()
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()
     #create_cutouts_run()
     #correct_one_shear_catalogue_caller()
     #downgrade_map()
+    redshift_histogram()
