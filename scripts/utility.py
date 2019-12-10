@@ -348,11 +348,7 @@ def plot_several_healpix_maps():
 
     # 1. maps from files
     path = "/share/splinter/ucapwhi/glimpse_project/output/"
-    #filenames = ["Buzzard_192.nside" + str(nside) + "_merged_B_values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
-    #filenames = ["foo2_values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
-    #filenames = ["foo1_values.dat", "foo2_values.dat"]
-    #filenames = ["foo2218_values.dat", "foo1440_values.dat"]
-    filenames = ["glimpse_downsampled_1024_values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
+    filenames = ["Buzzard_192.90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat", "Buzzard_192.90_110_2048_downgraded_to_1024.glimpse.merged.values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
         
     
     weight_maps = []
@@ -409,7 +405,7 @@ def plot_several_healpix_maps():
     
     if False:
         # Show diff between maps[0] and maps[1]
-        tolerance = 0.0009 # 0.0012 is the best so far
+        tolerance = 0.0009
         percentage_diff = comparison_function(maps[0], maps[1], tolerance)
         maps.append(percentage_diff)
         titles.append("Percentage difference")
@@ -422,7 +418,7 @@ def plot_several_healpix_maps():
         else:
             rot = (56.25, -27.2796127, 0.0)
             #rot = (0.0, 0.0, 0.0)
-            hp.gnomview(map, fig=i, rot=rot, title=title, reso=3.0, xsize=400) # , max=0.104, min=-0.0264)
+            hp.gnomview(map, fig=i, rot=rot, title=title, reso=20.0, xsize=400) # , max=0.104, min=-0.0264)
         hp.graticule()
     
     plt.show()
@@ -435,19 +431,12 @@ def clean_up_edges():
     import matplotlib.pyplot as plt
     
     do_nest = False
-    
-    path = "/share/splinter/ucapwhi/glimpse_project/output/"
-    
     nside = 1024
+    path = "/share/splinter/ucapwhi/glimpse_project/output/"
+    old_filename = "Buzzard_192.90_110_2048_downgraded_to_1024.glimpse.merged.values.dat"
+    new_filename = "Buzzard_192.90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat"
+    new_filename_png = "Buzzard_192.90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.png"
 
-    if False:
-        old_filename = "Buzzard_192.nside" + str(nside) + "_merged_B_values.dat"
-        new_filename = "Buzzard_192.nside" + str(nside) + "_merged_B_values_masked.dat"
-        new_filename_png = "Buzzard_192.nside" + str(nside) + "_merged_B_values_masked.png"
-    else:
-        old_filename = "foo2_values.dat"
-        new_filename = "foo2_values_masked.dat"
-        new_filename_png = "foo2_values_masked.png"
     
     
     m = hp.read_map(path + old_filename)
@@ -759,8 +748,8 @@ def downgrade_map():
     
     import healpy as hp
     path = "/share/splinter/ucapwhi/glimpse_project/output/"
-    f_in = "main_2048_values.dat"
-    f_out = "main_downsampled_1024_values.dat"
+    f_in = "Buzzard_192.90_110_2018.glimpse.merged.values.dat"
+    f_out = "Buzzard_192.90_110_2048_downgraded_to_1024.glimpse.merged.values.dat"
     
     
     m = hp.read_map(path + f_in)
@@ -768,6 +757,7 @@ def downgrade_map():
     hp.write_map(path + f_out, m_new, overwrite=True)
     
     
+# Written to produce data for Niall; used on 9 Dec 2019
 def redshift_histogram():
     
     import numpy as np
@@ -782,7 +772,13 @@ def redshift_histogram():
 
     
     
-    
+# Written to produce data for Niall; used on 10 Dec 2019
+def shear_stdev():
+    import numpy as np
+    (e1, e2) = get_fits_data(buzzard_data_file_name(), ["E1", "E2"])
+    e1_and_e2 = np.concatenate((e1, e2))
+    print(np.std(e1_and_e2))
+
     
 
 if __name__ == '__main__':
@@ -802,4 +798,7 @@ if __name__ == '__main__':
     #create_cutouts_run()
     #correct_one_shear_catalogue_caller()
     #downgrade_map()
-    redshift_histogram()
+    #redshift_histogram()
+    #downgrade_map()
+    shear_stdev()
+    
