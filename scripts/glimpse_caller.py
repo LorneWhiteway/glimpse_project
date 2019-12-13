@@ -11,7 +11,7 @@ def main(job_id):
     exe_file = "/share/splinter/ucapwhi/glimpse_project/Glimpse/build/glimpse"
     
     glimpse_cat_file_pattern = output_directory + project + ".*.glimpse.cat.fits"
-    id_list = [int(f.split(".")[1]) for f in glob.glob(glimpse_cat_file_pattern)]
+    id_list = [int(f.split(".")[-4]) for f in glob.glob(glimpse_cat_file_pattern)]
     id_list.sort()
     this_healpix_pixel_id = id_list[job_id]
     

@@ -4,7 +4,7 @@
 ########################## Start of one-off utilities ##########################
 
 
-def files_in_directory():
+def num_files_in_directory():
     import glob
     print(len(glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Mcal_0.2_1.3.*.glimpse.cat.fits")))
 
@@ -36,7 +36,7 @@ def shear_stdev():
 
 def tester():
     import healpy as hp
-    (ra ,dec) = hp.pix2ang(16, 2218, False, True)
+    (ra ,dec) = hp.pix2ang(16, 1242, False, True)
     id = hp.ang2pix(1024, ra, dec, False, lonlat=True)
     print(ra,dec,id)
 
@@ -467,7 +467,9 @@ def plot_several_healpix_maps():
 
     # 1. maps from files
     path = "/share/splinter/ucapwhi/glimpse_project/output/"
-    filenames = ["Buzzard_192.90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat", "Buzzard_192.90_110_2048_downgraded_to_1024.glimpse.merged.values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
+    #filenames = ["Buzzard_192.90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat", "Buzzard_192.90_110_2048_downgraded_to_1024.glimpse.merged.values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
+    #filenames = ["patch_1242_90_110_2048_values.dat"]
+    filenames = []
         
     
     weight_maps = []
@@ -487,21 +489,21 @@ def plot_several_healpix_maps():
         
     # 2. other maps
         
-    if False:
+    if True:
         # Also plot some glimpse input data
-        f = "Buzzard_192.1440.glimpse.cat.fits"
+        f = "Mcal_0.2_1.3.1308.glimpse.cat.fits"
         maps.append(fits_catalog_to_healpix_map(path + f, nside, False))
         titles.append(f)
     
-    if False:
+    if True:
         # Also plot glimpse output lattice
-        f = "Buzzard_192.2218.glimpse.out.fits"
+        f = "Mcal_0.2_1.3.1308.glimpse.out.fits"
         maps.append(glimpse_output_to_healpix_map(path + f, nside*4, False))
         titles.append(f + " values")
         
-    if False:
+    if True:
         # Also plot glimpse lattice points
-        f = "Buzzard_192.2218.glimpse.out.fits"
+        f = "Mcal_0.2_1.3.1308.glimpse.out.fits"
         maps.append(glimpse_lattice_points_to_healpix_map(path + f, nside*4, False))
         titles.append(f + " lattice points")
         
@@ -535,9 +537,10 @@ def plot_several_healpix_maps():
             #hp.mollview(map, fig=i, title=title)
             pass
         else:
-            rot = (56.25, -27.2796127, 0.0)
+            #rot = (326.25, 12.024699, 0.0)
+            rot = (180.0, 0.0, 0.0)
             #rot = (0.0, 0.0, 0.0)
-            hp.gnomview(map, fig=i, rot=rot, title=title, reso=20.0, xsize=400) # , max=0.104, min=-0.0264)
+            hp.gnomview(map, fig=i, rot=rot, title=title, reso=4.0, xsize=400) # , max=0.104, min=-0.0264)
         hp.graticule()
     
     plt.show()
@@ -903,7 +906,7 @@ if __name__ == '__main__':
     #sphere_to_tangent_plane_mapping_test_harness()
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
-    #plot_several_healpix_maps()
+    plot_several_healpix_maps()
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()
@@ -915,4 +918,4 @@ if __name__ == '__main__':
     #shear_stdev()
     #add_dummy_redshift_column_to_metacal()
     #angular_separation_test_harness()
-    files_in_directory()
+    #num_files_in_directory()
