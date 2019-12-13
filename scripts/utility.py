@@ -1,16 +1,42 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copied from view_glimpse, and amended
-def get_from_glimpse(glimpse_output_file):
+########################## Start of one-off utilities ##########################
+
+
+
+
+
+
+# Written to produce data for Niall; used on 9 Dec 2019
+def redshift_histogram():
+    
     import numpy as np
-    import astropy.io.fits as pyfits
-    ra = np.ndarray.flatten(pyfits.getdata(glimpse_output_file, ext=1))
-    dec = np.ndarray.flatten(pyfits.getdata(glimpse_output_file, ext=2))
-    kappa = np.ndarray.flatten(pyfits.getdata(glimpse_output_file, ext=0))
-    return (ra, dec, kappa)
+    np.set_printoptions(precision=3)
+    
+    top_z = 2.5
+    
+    (ra, dec, true_z) = get_from_fits_file(buzzard_data_file_name(), ["RA", "DEC", "true_z"])
+    (hist, bin_edges) = np.histogram(true_z, np.linspace(0.0, top_z, int(100*top_z) + 1))
+    for (b0, b1, h) in zip(bin_edges[:-1], bin_edges[1:], hist):
+        print("{0:.2f}\t{1:.2f}\t{2:d}".format(b0, b1, h))
+
+    
+    
+# Written to produce data for Niall; used on 10 Dec 2019
+def shear_stdev():
+    import numpy as np
+    (e1, e2) = get_from_fits_file(buzzard_data_file_name(), ["E1", "E2"])
+    e1_and_e2 = np.concatenate((e1, e2))
+    print(np.std(e1_and_e2))
 
 
+
+def tester():
+    import healpy as hp
+    (ra ,dec) = hp.pix2ang(16, 2218, False, True)
+    id = hp.ang2pix(1024, ra, dec, False, lonlat=True)
+    print(ra,dec,id)
 
 # Output is sorted
 def healpixel_ids_for_jobs():
@@ -25,6 +51,88 @@ def print_list_of_healpixels():
     ids = healpixel_ids_for_jobs()
     for (i, id) in zip(range(len(ids)), ids):
         print(i, id)
+
+def add_dummy_redshift_column_to_metacal():
+
+    import numpy as np
+    
+    list_of_field_names = ["RA", "DEC", "E1", "E2", "E1_RANDOM", "E2_RANDOM"]
+    list_of_data_columns = get_from_fits_file(metacal_data_file_name(), list_of_field_names)
+    
+    dummy_z = np.ones(list_of_data_columns[0].shape[0])
+    list_of_field_names.append("DUMMY_Z")
+    list_of_data_columns.append(dummy_z)
+    
+    write_to_fits_file(metacal_data_file_name().replace(".fits", ".new.fits"), list_of_field_names, list_of_data_columns)
+    
+
+def save_buzzard_truth():
+
+    import healpy as hp
+    import numpy as np
+    
+    do_nest = False
+    
+    nside = 512
+    num_healpixels = hp.nside2npix(nside)
+    sums = np.zeros(num_healpixels)
+    count = np.zeros(num_healpixels)
+    
+    (ra, dec, kappa) = get_from_fits_file(buzzard_data_file_name(), ["RA", "DEC", "k_orig"])
+    num_buzzard_data = len(ra)
+    print("num_buzzard_data = {}".format(num_buzzard_data))
+    id = hp.ang2pix(nside, ra, dec, do_nest, lonlat=True)
+    i = 0
+    for (this_id, this_kappa) in zip(id, kappa):
+        sums[this_id] += this_kappa
+        count[this_id] += 1
+        i += 1
+        if i % 1000000 == 0:
+            print("{} of {}".format(i, num_buzzard_data))
+        
+        
+    # The following division code treats 0/0 as 0. From https://stackoverflow.com/questions/26248654.
+    average_values = np.divide(sums, count, out=np.zeros_like(count, dtype=float), where=count!=0.0)
+    
+    # Save
+    filename = "/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.nside" + str(nside) + "_truth.dat"
+    
+    hp.write_map(filename, average_values, do_nest, overwrite=True)
+    
+
+# One-time test; see p GL97.
+def glimpse_array_order():
+    import healpy as hp
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    glimpse_output_file = "/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.1440.glimpse.out.fits"
+    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
+    
+    plt.plot(ra[:1000], c='red')
+    plt.plot(dec[:1000], c='blue')
+    plt.show()
+
+########################## End of one-off utilities ##########################
+
+
+
+
+
+
+
+
+# Copied from view_glimpse, and amended
+def get_from_glimpse(glimpse_output_file):
+    import numpy as np
+    import astropy.io.fits as pyfits
+    ra = np.ndarray.flatten(pyfits.getdata(glimpse_output_file, ext=1))
+    dec = np.ndarray.flatten(pyfits.getdata(glimpse_output_file, ext=2))
+    kappa = np.ndarray.flatten(pyfits.getdata(glimpse_output_file, ext=0))
+    return (ra, dec, kappa)
+
+
+
 
 
 
@@ -53,19 +161,18 @@ def kappa_values_in_one_fine_pixel():
                 j += 1
 
         
-def tester():
-    import healpy as hp
-    (ra ,dec) = hp.pix2ang(16, 2218, False, True)
-    id = hp.ang2pix(1024, ra, dec, False, lonlat=True)
-    print(ra,dec,id)
     
 #"RA", "DEC", "true_z", "E1", "E2", "G1", "G2", "k_orig"
 def buzzard_data_file_name():
     return '/share/testde/ucapnje/buzzard_desy3_marco/Buzzard_192.fits'
 
-
+#"RA", "DEC", "E1", "E2", "E1_RANDOM", "E2_RANDOM", "DUMMY_Z"
+def metacal_data_file_name():
+    return '/share/testde/ucapnje/year3_des/Mcal_0.2_1.3.fits'
+    
+    
 # 'what_to_get' should be a list of field names (case insensitive)
-def get_fits_data(file_name, what_to_get):
+def get_from_fits_file(file_name, what_to_get):
     import astropy.io.fits as pyfits
     print("Opening input file " + file_name + "...")
     res = []
@@ -80,45 +187,23 @@ def get_fits_data(file_name, what_to_get):
 
 
 
-def save_buzzard_truth():
+def write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns):
+    import astropy.io.fits as pyfits
+    print("Writing to {}...".format(output_filename))
+    column_info = []
+    for (field_name, data_column) in zip(list_of_field_names, list_of_data_columns):
+        column_info.append(pyfits.Column(name=field_name, format='D', array=data_column))
+    tbhdu = pyfits.BinTableHDU.from_columns(column_info)
+    tbhdu.writeto(output_filename, overwrite=True)
 
-    import healpy as hp
-    import numpy as np
-    
-    do_nest = False
-    
-    nside = 512
-    num_healpixels = hp.nside2npix(nside)
-    sums = np.zeros(num_healpixels)
-    count = np.zeros(num_healpixels)
-    
-    (ra, dec, kappa) = get_fits_data(buzzard_data_file_name(), ["RA", "DEC", "k_orig"])
-    num_buzzard_data = len(ra)
-    print("num_buzzard_data = {}".format(num_buzzard_data))
-    id = hp.ang2pix(nside, ra, dec, do_nest, lonlat=True)
-    i = 0
-    for (this_id, this_kappa) in zip(id, kappa):
-        sums[this_id] += this_kappa
-        count[this_id] += 1
-        i += 1
-        if i % 1000000 == 0:
-            print("{} of {}".format(i, num_buzzard_data))
-        
-        
-    # The following division code treats 0/0 as 0. From https://stackoverflow.com/questions/26248654.
-    average_values = np.divide(sums, count, out=np.zeros_like(count, dtype=float), where=count!=0.0)
-    
-    # Save
-    filename = "/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.nside" + str(nside) + "_truth.dat"
-    
-    hp.write_map(filename, average_values, do_nest, overwrite=True)
-    
+
+
 def fits_catalog_to_healpix_map(catalog_file_name, nside, do_nest):
 
     import healpy as hp
     import numpy as np
 
-    (ra, dec) = get_fits_data(catalog_file_name, ["ra", "dec"])
+    (ra, dec) = get_from_fits_file(catalog_file_name, ["ra", "dec"])
     
     num_healpixels = hp.nside2npix(nside)
     res = np.zeros(num_healpixels)
@@ -164,6 +249,16 @@ def cleanup_ra(ra_rad):
     ret[np.where(ret < 0.0)] += two_pi
     return ret
     
+
+################
+# Example code for timing
+    #from timeit import default_timer as timer
+    #start = timer()
+    #print("step {}, {}".format(1, timer() - start))
+
+
+
+
 # See LW's book p. 114.
 # Direction = 1.0 for clockwise on the sky, -1.0 for anticlockwise on the sky
 # Rotates about (0, 0)
@@ -177,6 +272,7 @@ def rotate_45_degrees(ra_rad, dec_rad, direction):
 
     ra_rotated_rad = np.arctan2((cos_dec * sin_ra - direction * sin_dec) * np.sqrt(2.0) / 2.0, cos_dec * cos_ra)
     dec_rotated_rad = np.arcsin((sin_dec + direction * cos_dec * sin_ra) * np.sqrt(2.0) / 2.0)
+
     return (ra_rotated_rad, dec_rotated_rad)
     
 
@@ -185,32 +281,46 @@ def rotate_shear_45_degrees(e1, e2):
     return (-e2, e1)
 
 
+# ra can be either numpy arrays in degrees, or a 2-element list containing arrays of sin(radians(ra)) and cos(radians(ra)).
+# Same for dec.
 def to_standard_position(ra, dec, ra_centre, dec_centre):
     import numpy as np
-    
-    ra_rad = np.radians(ra)
-    dec_rad = np.radians(dec)
+
     ra_centre_rad = np.radians(ra_centre)
     dec_centre_rad = np.radians(dec_centre)
+
+    if isinstance(ra, np.ndarray):
+        ra_rad = np.radians(ra)
+        sin_ra_diff = np.sin(ra_rad - ra_centre_rad)
+        cos_ra_diff = np.cos(ra_rad - ra_centre_rad)
+    else:
+        sin_ra_diff = ra[0] * np.cos(ra_centre_rad) - ra[1] * np.sin(ra_centre_rad) # np.sin(ra_rad - ra_centre_rad)
+        cos_ra_diff = ra[1] * np.cos(ra_centre_rad) + ra[0] * np.sin(ra_centre_rad) # np.cos(ra_rad - ra_centre_rad)
+        
+    if isinstance(dec, np.ndarray):
+        dec_rad = np.radians(dec)
+        sin_dec = np.sin(dec_rad)
+        cos_dec = np.cos(dec_rad)
+    else:
+        sin_dec = dec[0]
+        cos_dec = dec[1]
+        
     
     # Move (ra_centre, dec_centre) to (0, 0)
     # See LW's book p. 78
-    sin_dec = np.sin(dec_rad)
-    cos_dec = np.cos(dec_rad)
-    sin_ra_diff = np.sin(ra_rad - ra_centre_rad)
-    cos_ra_diff = np.cos(ra_rad - ra_centre_rad)
     ra_shifted_rad = np.arctan2(cos_dec * sin_ra_diff, cos_dec * np.cos(dec_centre_rad) * cos_ra_diff + sin_dec * np.sin(dec_centre_rad))
     dec_shifted_rad = np.arcsin(sin_dec * np.cos(dec_centre_rad) - cos_dec * np.sin(dec_centre_rad) * cos_ra_diff)
-    
+       
     # Rotate by 45 degrees
     (ra_shifted_rotated_rad, dec_shifted_rotated_rad) = rotate_45_degrees(ra_shifted_rad, dec_shifted_rad, 1.0)
-    
+        
     # Move (0, 0) to (pi, 0) and cleanup RA to be in [0, 2pi).
     ra_shifted_rotated_rad += np.pi
     ra_shifted_rotated_rad = cleanup_ra(ra_shifted_rotated_rad)
     
     ra_shifted_rotated = np.degrees(ra_shifted_rotated_rad)
     dec_shifted_rotated = np.degrees(dec_shifted_rotated_rad)
+    
     
     return (ra_shifted_rotated, dec_shifted_rotated)
     
@@ -250,7 +360,7 @@ def to_standard_position_test_harness():
     import matplotlib.pyplot as plt
     
     ra_centre = 72.0
-    dec_centre = -88.0
+    dec_centre = -18.0
     
     #ra = np.linspace(0.0, 359.0, num = 360)
     #dec = ra * 0 + 1.0
@@ -260,7 +370,14 @@ def to_standard_position_test_harness():
     ra = ra_centre + r * np.cos(theta)
     dec = dec_centre + r * np.sin(theta)
     
-    (ra_new, dec_new) = to_standard_position(ra, dec, ra_centre, dec_centre)
+    if False:
+        ra_in = [np.sin(np.radians(ra)), np.cos(np.radians(ra))]
+        dec_in = [np.sin(np.radians(dec)), np.cos(np.radians(dec))]
+    else:
+        ra_in = ra
+        dec_in = dec
+    
+    (ra_new, dec_new) = to_standard_position(ra_in, dec_in, ra_centre, dec_centre)
     
     plt.scatter(ra_new, dec_new, c = theta)
     plt.show()
@@ -440,7 +557,7 @@ def clean_up_edges():
     
     
     m = hp.read_map(path + old_filename)
-    (ra, dec) = get_fits_data(buzzard_data_file_name(), ["RA", "DEC"])
+    (ra, dec) = get_from_fits_file(buzzard_data_file_name(), ["RA", "DEC"])
     
     # Create a mask that is zero in healpixels where there are no source galaxies and one elsewhere.
     
@@ -558,18 +675,6 @@ def ra_dec_to_healpixel_id_test_harness():
     print(hp.ang2pix(nside, ra, dec, nest, lonlat=True))
     
     
-# One-time test; see p GL97.
-def glimpse_array_order():
-    import healpy as hp
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
-    glimpse_output_file = "/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.1440.glimpse.out.fits"
-    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
-    
-    plt.plot(ra[:1000], c='red')
-    plt.plot(dec[:1000], c='blue')
-    plt.show()
     
 
 # No error if directory already exists
@@ -594,10 +699,29 @@ def update_percentage_bar(percentage):
         print('\n')
 
 
+# The input coordinates describe two points p1 and p2 on sphere (ra in [0, 360] and dec in [-90, 90]).
+# Return value is the angle p1->0->p2 in radians.
+# See https://en.wikipedia.org/wiki/Haversine_formula
+def angular_separation(ra1, dec1, ra2, dec2):
+
+	import numpy as np
+
+	long1 = np.radians(ra1)
+	long2 = np.radians(ra2)
+	lat1 = np.radians(dec1)
+	lat2 = np.radians(dec2)
+	half_dlong = (long2 - long1) / 2.0
+	half_dlat = (lat2 - lat1) / 2.0
+	a = np.sin(half_dlat)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(half_dlong)**2
+	return 2.0 * np.arcsin(np.minimum(1.0, np.sqrt(a)))
+    
+def angular_separation_test_harness():
+    import numpy as np
+    print(np.degrees(angular_separation(0.0, 0.0, 5.0, 35.0)))
 
 
 
-def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root):
+def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root, ids_to_process):
 
     from astropy.table import Table
     import healpy as hp
@@ -634,60 +758,63 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
     num_digits = 1 + int(math.log10(num_healpixels))
         
     print('Creating output files...')
-    old_percentage = -1
-    loop_length = num_healpixels
-    i = 0
-    for healpix_id in np.arange(num_healpixels):
-        print("Processing {} of {}".format(healpix_id, num_healpixels))
-        
-        # Progress bar
-        percentage = int(100*(i+1)/float(loop_length))
-        if percentage > old_percentage:
-            #update_percentage_bar(percentage)
-            old_percentage = percentage
-        
-        
-        
-        (ra_centre, dec_centre) = hp.pix2ang(nside, healpix_id, nest, lonlat=True)
-        
-        # Put the data in standard position relative to this centre point
-        print("Standardising...")
-        (ra_standardised, dec_standardised) = to_standard_position(ra, dec, ra_centre, dec_centre)
-        
-        # Which data lie in the standard cutout?
-        print("Filtering...")
-        filter = is_in_standard_cutout(ra_standardised, dec_standardised, cutout_side_in_degrees)
-        
-        if filter[0].size > 0:
-            # Some galaxies to write
-            print("Writing...")
-            output_file_name = (output_directory + "/" + output_file_root).format(str(healpix_id).zfill(num_digits))
-            
-            column_info = []
-            column_info.append(pyfits.Column(name=raname, format='D', array=ra_standardised[filter]))
-            column_info.append(pyfits.Column(name=decname, format='D', array=dec_standardised[filter]))
-            
-            if shear_names:
-                parsed_shear_names = shear_names.split(",")
-                for (shear_name_1, shear_name_2) in zip(parsed_shear_names[0::2], parsed_shear_names[1::2]):
-                    print(shear_name_1, shear_name_2)
-                    (shear1, shear2) = rotate_shear_45_degrees(data[shear_name_1], data[shear_name_2])
-                    column_info.append(pyfits.Column(name=shear_name_1, format='D', array=shear1[filter]))
-                    column_info.append(pyfits.Column(name=shear_name_2, format='D', array=shear2[filter]))
-            
-            for f in other_field_names.split(","):
-                column_info.append(pyfits.Column(name=f, format='D', array=data[f][filter]))
 
-            tbhdu = pyfits.BinTableHDU.from_columns(column_info)
-            tbhdu.writeto(output_file_name, overwrite=True)
-            if False:
-                update_percentage_bar(-1)
-                sys.exit()
-            
+    for healpix_id in ids_to_process:
+
+        print("Processing {} of {}".format(healpix_id, num_healpixels)
         
-        i += 1
+        if healpix_id < num_healpixels:
+            print("Do nothing as healpix_id {} is too big".format(healpix_id))
+        else:
+        
+            (ra_centre, dec_centre) = hp.pix2ang(nside, healpix_id, nest, lonlat=True)
+            
+            # See p. GL127. The factor of 1.1 is just for safety (there is some distortion mapping from the tangent plane to the sphere).
+            minimum_separation = np.degrees(np.min(angular_separation(ra, dec, ra_centre, dec_centre)))
+            if minimum_separation > 1.1 * (cutout_side_in_degrees * np.sqrt(2.0) / 2.0):
+                print("Do nothing as cutout will be empty; minimum separation is {} degrees".format(minimum_separation))
+            else:
+                ra_in = [np.sin(np.radians(ra)), np.cos(np.radians(ra))]
+                dec_in = [np.sin(np.radians(dec)), np.cos(np.radians(dec))]
+                
+                
+                # Put the data in standard position relative to this centre point
+                (ra_standardised, dec_standardised) = to_standard_position(ra_in, dec_in, ra_centre, dec_centre)
+                
+                # Which data lie in the standard cutout?
+                filter = is_in_standard_cutout(ra_standardised, dec_standardised, cutout_side_in_degrees)
+                
+                if filter[0].size > 0:
+                    # Some galaxies to write
+                    output_filename = (output_directory + "/" + output_file_root).format(str(healpix_id).zfill(num_digits))
+                    
+                    field_names = []
+                    data_columns = []
+                    
+                    field_names.append(raname)
+                    data_columns.append(ra_standardised[filter])
+                                
+                    field_names.append(decname)
+                    data_columns.append(dec_standardised[filter])
+                    
+                    
+                    if shear_names:
+                        parsed_shear_names = shear_names.split(",")
+                        for (shear_name_1, shear_name_2) in zip(parsed_shear_names[0::2], parsed_shear_names[1::2]):
+                            (shear1, shear2) = rotate_shear_45_degrees(data[shear_name_1], data[shear_name_2])
+                            
+                            field_names.append(shear_name_1)
+                            data_columns.append(shear1[filter])
+                            
+                            field_names.append(shear_name_2)
+                            data_columns.append(shear2[filter])
+                    
+                    for f in other_field_names.split(","):
+                        field_names.append(f)
+                        data_columns.append(data[f][filter])
+                       
+                    write_to_fits_file(output_filename, field_names, data_columns)
        
-    update_percentage_bar(-1)
 
 
 
@@ -699,24 +826,17 @@ def correct_one_shear_catalogue(catalogue_filename):
     
     print("Processing {}...".format(catalogue_filename))
     
+    list_of_field_names = ["RA", "DEC", "E1", "E2", "true_z"]
+    list_of_data_columns = get_from_fits_file(catalogue_filename, field_names)
+        
+    list_of_data_columns[2] *= -1.0 # E1
+    list_of_data_columns[3] *= -1.0 # E2
+    
     output_filename = catalogue_filename.replace("/output/", "/output1/")
     
-    data = Table.read(catalogue_filename, format="fits")
-        
-    ra = data["RA"]
-    dec = data["DEC"]
-    e1 = data["E1"]
-    e2 = data["E2"]
-    true_z = data["E2"]
+    write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns)
 
-    column_info = []
-    column_info.append(pyfits.Column(name="RA", format='D', array=ra))
-    column_info.append(pyfits.Column(name="DEC", format='D', array=dec))
-    column_info.append(pyfits.Column(name="E1", format='D', array=-e1))
-    column_info.append(pyfits.Column(name="E2", format='D', array=-e2))
-    column_info.append(pyfits.Column(name="true_z", format='D', array=true_z))
-    tbhdu = pyfits.BinTableHDU.from_columns(column_info)
-    tbhdu.writeto(output_filename, overwrite=True)
+
 
 def correct_one_shear_catalogue_caller():
     
@@ -726,22 +846,31 @@ def correct_one_shear_catalogue_caller():
         correct_one_shear_catalogue(f)
 
 
+def create_cutouts_ids_to_process_from_job_number(job_number):
+    import numpy as np
+    
+    return np.arange(60) + 2478 + 60 * job_number  # See p. GL128
+    
+    
 
-def create_cutouts_run():
 
-    input_catalogue = buzzard_data_file_name()
+
+def create_cutouts_run(job_number):
+
+    input_catalogue = metacal_data_file_name()
     catformat = "fits"
     raname = "RA"
     decname = "DEC"
     shear_names = "E1,E2"
-    other_field_names = "true_z"
+    other_field_names = "DUMMY_Z"
     nside = 16
     nest = False
     cutout_side_in_degrees = 16
     output_directory = "/share/splinter/ucapwhi/glimpse_project/output"
-    output_file_root = "Buzzard_192.{}.glimpse.cat.fits"
+    output_file_root = "Mcal_0.2_1.3.{}.glimpse.cat.fits"
+    ids_to_process = create_cutouts_ids_to_process_from_job_number(job_number)
 
-    create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root)
+    create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root, ids_to_process)
 
 
 def downgrade_map():
@@ -757,31 +886,12 @@ def downgrade_map():
     hp.write_map(path + f_out, m_new, overwrite=True)
     
     
-# Written to produce data for Niall; used on 9 Dec 2019
-def redshift_histogram():
-    
-    import numpy as np
-    np.set_printoptions(precision=3)
-    
-    top_z = 2.5
-    
-    (ra, dec, true_z) = get_fits_data(buzzard_data_file_name(), ["RA", "DEC", "true_z"])
-    (hist, bin_edges) = np.histogram(true_z, np.linspace(0.0, top_z, int(100*top_z) + 1))
-    for (b0, b1, h) in zip(bin_edges[:-1], bin_edges[1:], hist):
-        print("{0:.2f}\t{1:.2f}\t{2:d}".format(b0, b1, h))
-
-    
-    
-# Written to produce data for Niall; used on 10 Dec 2019
-def shear_stdev():
-    import numpy as np
-    (e1, e2) = get_fits_data(buzzard_data_file_name(), ["E1", "E2"])
-    e1_and_e2 = np.concatenate((e1, e2))
-    print(np.std(e1_and_e2))
 
     
 
 if __name__ == '__main__':
+
+    import sys
 
     #print_list_of_healpixels()
     #kappa_values_in_one_fine_pixel()
@@ -795,10 +905,11 @@ if __name__ == '__main__':
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()
-    #create_cutouts_run()
+    create_cutouts_run(int(sys.argv[1]))
     #correct_one_shear_catalogue_caller()
     #downgrade_map()
     #redshift_histogram()
     #downgrade_map()
-    shear_stdev()
-    
+    #shear_stdev()
+    #add_dummy_redshift_column_to_metacal()
+    #angular_separation_test_harness()
