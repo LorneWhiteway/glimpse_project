@@ -7,7 +7,7 @@ def main(job_id):
     import subprocess
     
     output_directory = "/share/splinter/ucapwhi/glimpse_project/output/"
-    project = "Buzzard_192"
+    project = "Mcal_0.2_1.3"
     exe_file = "/share/splinter/ucapwhi/glimpse_project/Glimpse/build/glimpse"
     
     glimpse_cat_file_pattern = output_directory + project + ".*.glimpse.cat.fits"
@@ -17,13 +17,12 @@ def main(job_id):
     
     print("Healpixel id = {}...".format(this_healpix_pixel_id))
     
-    root = output_directory + project + "." + str(this_healpix_pixel_id).zfill(4)
+    this_healpix_id_as_string = str(this_healpix_pixel_id).zfill(4)
     
-    ini_file = root + ".glimpse.ini"
-    cat_file = root + ".glimpse.cat.fits"
-    out_file = root + ".glimpse.out.fits"
+    ini_file = output_directory + project  + ".glimpse.ini"
+    cat_file = output_directory + project + "." + this_healpix_id_as_string + ".glimpse.cat.fits"
+    out_file = output_directory + project + "." + this_healpix_id_as_string + ".glimpse.out.fits"
     
-    print("Root = {}".format(root))
 
     subprocess.run([exe_file, ini_file, cat_file, out_file])
 

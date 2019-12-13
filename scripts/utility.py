@@ -4,7 +4,9 @@
 ########################## Start of one-off utilities ##########################
 
 
-
+def files_in_directory():
+    import glob
+    print(len(glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Mcal_0.2_1.3.*.glimpse.cat.fits")))
 
 
 
@@ -761,9 +763,9 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
 
     for healpix_id in ids_to_process:
 
-        print("Processing {} of {}".format(healpix_id, num_healpixels)
+        print("Processing {} of {}".format(healpix_id, num_healpixels))
         
-        if healpix_id < num_healpixels:
+        if healpix_id >= num_healpixels:
             print("Do nothing as healpix_id {} is too big".format(healpix_id))
         else:
         
@@ -905,7 +907,7 @@ if __name__ == '__main__':
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()
-    create_cutouts_run(int(sys.argv[1]))
+    #create_cutouts_run(int(sys.argv[1]))
     #correct_one_shear_catalogue_caller()
     #downgrade_map()
     #redshift_histogram()
@@ -913,3 +915,4 @@ if __name__ == '__main__':
     #shear_stdev()
     #add_dummy_redshift_column_to_metacal()
     #angular_separation_test_harness()
+    files_in_directory()
