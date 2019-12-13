@@ -4,6 +4,61 @@
 ########################## Start of one-off utilities ##########################
 
 
+# catalogue_filename will resemble ".../Buzzard_192.2766.glimpse.cat.fits"
+def correct_one_shear_catalogue(catalogue_filename):
+    
+    from astropy.table import Table
+    import astropy.io.fits as pyfits
+    
+    print("Processing {}...".format(catalogue_filename))
+    
+    list_of_field_names = ["RA", "DEC", "E1", "E2", "true_z"]
+    list_of_data_columns = get_from_fits_file(catalogue_filename, field_names)
+        
+    list_of_data_columns[2] *= -1.0 # E1
+    list_of_data_columns[3] *= -1.0 # E2
+    
+    output_filename = catalogue_filename.replace("/output/", "/output1/")
+    
+    write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns)
+
+
+
+def correct_one_shear_catalogue_caller():
+    
+    import glob
+    filelist = glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.glimpse.cat.fits")
+    for f in filelist: 
+        correct_one_shear_catalogue(f)
+
+
+def create_cutouts_ids_to_process_from_job_number(job_number):
+    import numpy as np
+    
+    return np.arange(60) + 2478 + 60 * job_number  # See p. GL128
+    
+    
+
+
+
+def create_cutouts_run(job_number):
+
+    input_catalogue = metacal_data_file_name()
+    catformat = "fits"
+    raname = "RA"
+    decname = "DEC"
+    shear_names = "E1,E2"
+    other_field_names = "DUMMY_Z"
+    nside = 16
+    nest = False
+    cutout_side_in_degrees = 16
+    output_directory = "/share/splinter/ucapwhi/glimpse_project/output"
+    output_file_root = "Mcal_0.2_1.3.{}.glimpse.cat.fits"
+    ids_to_process = create_cutouts_ids_to_process_from_job_number(job_number)
+
+    create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root, ids_to_process)
+
+
 def num_files_in_directory():
     import glob
     print(len(glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Mcal_0.2_1.3.*.glimpse.cat.fits")))
@@ -491,19 +546,19 @@ def plot_several_healpix_maps():
         
     if True:
         # Also plot some glimpse input data
-        f = "Mcal_0.2_1.3.1308.glimpse.cat.fits"
+        f = "Mcal_0.2_1.3.1689.glimpse.cat.fits"
         maps.append(fits_catalog_to_healpix_map(path + f, nside, False))
         titles.append(f)
     
     if True:
         # Also plot glimpse output lattice
-        f = "Mcal_0.2_1.3.1308.glimpse.out.fits"
+        f = "Mcal_0.2_1.3.1689.glimpse.out.fits"
         maps.append(glimpse_output_to_healpix_map(path + f, nside*4, False))
         titles.append(f + " values")
         
     if True:
         # Also plot glimpse lattice points
-        f = "Mcal_0.2_1.3.1308.glimpse.out.fits"
+        f = "Mcal_0.2_1.3.1689.glimpse.out.fits"
         maps.append(glimpse_lattice_points_to_healpix_map(path + f, nside*4, False))
         titles.append(f + " lattice points")
         
@@ -725,8 +780,8 @@ def angular_separation_test_harness():
     print(np.degrees(angular_separation(0.0, 0.0, 5.0, 35.0)))
 
 
-
-def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root, ids_to_process):
+# Will process ids in the range [ids_to_process_start, ids_to_process_end). Set ids_to_process_end to -1 to mean "to the end"
+def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, ids_to_process_start, ids_to_process_end, output_directory, output_file_root):
 
     from astropy.table import Table
     import healpy as hp
@@ -764,15 +819,15 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
         
     print('Creating output files...')
 
-    for healpix_id in ids_to_process:
+    for healpix_id in range(num_healpixels)[ids_to_process_start:ids_to_process_end]:
 
         print("Processing {} of {}".format(healpix_id, num_healpixels))
         
-        if healpix_id >= num_healpixels:
-            print("Do nothing as healpix_id {} is too big".format(healpix_id))
+        if healpix_id < 0 or healpix_id >= num_healpixels:
+            print("Do nothing as healpix_id {} is not in range [0, {})".format(healpix_id, num_healpixels))
         else:
         
-            (ra_centre, dec_centre) = hp.pix2ang(nside, healpix_id, nest, lonlat=True)
+            (ra_centre, dec_centre) = hp.pix2ang(nside, healpix_id, nest=False, lonlat=True)
             
             # See p. GL127. The factor of 1.1 is just for safety (there is some distortion mapping from the tangent plane to the sphere).
             minimum_separation = np.degrees(np.min(angular_separation(ra, dec, ra_centre, dec_centre)))
@@ -823,60 +878,6 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
 
 
 
-# catalogue_filename will resemble ".../Buzzard_192.2766.glimpse.cat.fits"
-def correct_one_shear_catalogue(catalogue_filename):
-    
-    from astropy.table import Table
-    import astropy.io.fits as pyfits
-    
-    print("Processing {}...".format(catalogue_filename))
-    
-    list_of_field_names = ["RA", "DEC", "E1", "E2", "true_z"]
-    list_of_data_columns = get_from_fits_file(catalogue_filename, field_names)
-        
-    list_of_data_columns[2] *= -1.0 # E1
-    list_of_data_columns[3] *= -1.0 # E2
-    
-    output_filename = catalogue_filename.replace("/output/", "/output1/")
-    
-    write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns)
-
-
-
-def correct_one_shear_catalogue_caller():
-    
-    import glob
-    filelist = glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.glimpse.cat.fits")
-    for f in filelist: 
-        correct_one_shear_catalogue(f)
-
-
-def create_cutouts_ids_to_process_from_job_number(job_number):
-    import numpy as np
-    
-    return np.arange(60) + 2478 + 60 * job_number  # See p. GL128
-    
-    
-
-
-
-def create_cutouts_run(job_number):
-
-    input_catalogue = metacal_data_file_name()
-    catformat = "fits"
-    raname = "RA"
-    decname = "DEC"
-    shear_names = "E1,E2"
-    other_field_names = "DUMMY_Z"
-    nside = 16
-    nest = False
-    cutout_side_in_degrees = 16
-    output_directory = "/share/splinter/ucapwhi/glimpse_project/output"
-    output_file_root = "Mcal_0.2_1.3.{}.glimpse.cat.fits"
-    ids_to_process = create_cutouts_ids_to_process_from_job_number(job_number)
-
-    create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root, ids_to_process)
-
 
 def downgrade_map():
     
@@ -919,3 +920,4 @@ if __name__ == '__main__':
     #add_dummy_redshift_column_to_metacal()
     #angular_separation_test_harness()
     #num_files_in_directory()
+    #foo_caller()
