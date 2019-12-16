@@ -298,12 +298,21 @@ def glimpse_lattice_points_to_healpix_map(glimpse_output_file, nside, do_nest):
     return ret
 
 # Cleanup ra_rad so that it lies in [0, 2pi)
-def cleanup_ra(ra_rad):
+def cleanup_ra_rad(ra_rad):
     import numpy as np
     two_pi = 2.0 * np.pi
     ret = ra_rad
-    ret[np.where(ret >= two_pi)] -= two_pi
     ret[np.where(ret < 0.0)] += two_pi
+    ret[np.where(ret >= two_pi)] -= two_pi
+    return ret
+
+# Cleanup ra so that it lies in [0, 360)
+def cleanup_ra(ra):
+    import numpy as np
+    print(ra)
+    ret = ra
+    ret[np.where(ret < 0.0)] += 360.0
+    ret[np.where(ret >= 360.0)] -= 360.0
     return ret
     
 
@@ -373,7 +382,7 @@ def to_standard_position(ra, dec, ra_centre, dec_centre):
         
     # Move (0, 0) to (pi, 0) and cleanup RA to be in [0, 2pi).
     ra_shifted_rotated_rad += np.pi
-    ra_shifted_rotated_rad = cleanup_ra(ra_shifted_rotated_rad)
+    ra_shifted_rotated_rad = cleanup_ra_rad(ra_shifted_rotated_rad)
     
     ra_shifted_rotated = np.degrees(ra_shifted_rotated_rad)
     dec_shifted_rotated = np.degrees(dec_shifted_rotated_rad)
@@ -403,7 +412,7 @@ def from_standard_position(ra, dec, ra_centre, dec_centre):
     dec_rotated_shifted_rad = np.arcsin(np.sin(dec_rotated_rad) * np.cos(dec_centre_rad) + np.cos(dec_rotated_rad) * np.sin(dec_centre_rad) * np.cos(ra_rotated_rad))
     
     # Cleanup RA into [0, 2pi)
-    ra_rotated_shifted_rad = cleanup_ra(ra_rotated_shifted_rad)
+    ra_rotated_shifted_rad = cleanup_ra_rad(ra_rotated_shifted_rad)
     
     ra_rotated_shifted = np.degrees(ra_rotated_shifted_rad)
     dec_rotated_shifted = np.degrees(dec_rotated_shifted_rad)
@@ -477,6 +486,73 @@ def to_from_standard_position_test_harness():
     error = np.sqrt((ra_new_new - ra)**2 + (dec_new_new - dec)**2)
     print(np.max(error))
 
+
+# See p. GL 140
+def rotation_matrix(ra_centre, dec_centre):
+
+    import numpy as np
+
+    ra = np.array([0.0, 90.0, 0.0])
+    dec = np.array([0.0, 0.0, 90.0])
+    (new_ra, new_dec) = to_standard_position(ra, dec, ra_centre, dec_centre)
+    x = np.cos(np.radians(new_dec)) * np.cos(np.radians(new_ra))
+    y = np.cos(np.radians(new_dec)) * np.sin(np.radians(new_ra))
+    z = np.sin(np.radians(new_dec))
+    
+    A = np.column_stack((x, y, z))
+    return A
+    
+    
+# Set 'to' to True to go to standard position and to False to go from standard position
+def standard_position_fast_core(x, y, z, ra_centre, dec_centre, to):
+
+    import numpy as np
+    
+    A = rotation_matrix(ra_centre, dec_centre)
+    if not to:
+        A = np.linalg.inv(A)
+    new_xyz = np.dot(np.column_stack((x, y, z)), A)
+    rotated_ra = cleanup_ra(np.degrees(np.arctan2(new_xyz[:,1], new_xyz[:,0])))
+    rotated_dec = np.degrees(np.arcsin(new_xyz[:,2]))
+    return (rotated_ra, rotated_dec)
+
+    
+def to_standard_position_fast(x, y, z, ra_centre, dec_centre):
+    return standard_position_fast_core(x, y, z, ra_centre, dec_centre, True)
+    
+def from_standard_position_fast(x, y, z, ra_centre, dec_centre):
+    return standard_position_fast_core(x, y, z, ra_centre, dec_centre, False)
+    
+    
+def to_from_standard_position_fast_test_harness():
+
+    import numpy as np
+    
+    to = False
+
+    ra = np.array([0.0, 90.0, 0.0, 34.0, 23.0, 67.0, 332.0, 175.0])
+    dec = np.array([0.0, 00.0, 90.0, -34.0, 74.0, 67.0, -39.0, -88.0])
+    
+    x = np.cos(np.radians(dec)) * np.cos(np.radians(ra))
+    y = np.cos(np.radians(dec)) * np.sin(np.radians(ra))
+    z = np.sin(np.radians(dec))
+    
+    ra_centre = 180.0
+    dec_centre = 0.0
+    
+    if to:
+        res1 = to_standard_position_fast(x, y, z, ra_centre, dec_centre)
+        res2 = to_standard_position(ra, dec, ra_centre, dec_centre)
+    else:
+        res1 = from_standard_position_fast(x, y, z, ra_centre, dec_centre)
+        res2 = from_standard_position(ra, dec, ra_centre, dec_centre)
+    
+    
+    print(res1)
+    print("==========")
+    print(res2)
+    
+    print(res1[0][0])
     
 
 
@@ -891,8 +967,111 @@ def downgrade_map():
     m_new = hp.ud_grade(m, 1024)
     hp.write_map(path + f_out, m_new, overwrite=True)
     
-    
 
+##################################### Start of solver code #####################################
+# See p. GL 136. Nice idea, didn't work (numerical solution had too much error...)  
+
+def objective_function(x, centre):
+
+    import math
+    import numpy as np
+    
+    a = x[0]
+    b = x[1]
+    c = x[2]
+    d = x[3]
+    
+    cx = centre[0]
+    cy = centre[1]
+    cz = centre[2]
+    
+    y0 = a**2 + b**2 + c**2 + d**2 - 1.0
+    
+    #y1 = (a**2 + b**2 - c**2 - d**2) * cx + 2.0 * (b * c - a* d) * cy + 2.0 * (b * d + a * c) * cz + 1.0
+    y1 = (a**2 + b**2 - c**2 - d**2) * cx + 2.0 * (b * c - a * d) * cy + 2.0 * (b * d + a * c) * cz - 1.0
+        
+    y2 = 2.0 * (b * c + a * d) * cx + (a**2 + c**2 -b**2 -d**2) * cy + 2.0 * (c * d - a * b) * cz
+    
+    #y3 = 2.0 * (b * c + a * d) * cy - (a**2 + c**2 -b**2 -d**2) * cx - math.sqrt(2.0) / 2.0
+    #y3 = 2.0 * (b * c + a * d) * cy - (a**2 + c**2 -b**2 -d**2) * cx - 1.0
+    y3 = d
+    
+    y = np.array([y0, y1, y2, y3])
+    
+    print(x, " |-->  ", y)
+    
+    return y
+
+
+
+def objective_function_foo(x, centre):
+
+    import math
+    import numpy as np
+    
+    a = x[0]
+    b = x[1]
+    c = x[2]
+    d = x[3]
+    
+    
+    y0 = a**2 + b**2 + c**2 + d**2 - 1.0
+    y1 = (a**2 + b**2 - c**2 - d**2) + 1.0
+    y2 = 2.0 * (b * d + a * c)
+    y3 = a**2 - b**2 - c**2 + d**2 - 1.0
+    
+    y = np.array([y0, y1, y2, y3])
+    
+    Jac = 2.0 * np.array([[a, a, -c, a], [b, b, d, -b], [c, -c, -a, -c], [d, -d, b, d]])
+    
+    
+    print(x, " |-->  ", y)
+    
+    return (y, Jac)
+    #return y
+
+
+
+def solver():
+    
+    import scipy.optimize as so
+    import numpy as np
+    
+    print("========================================================================================")
+
+
+    cx = 0.999
+    cy = np.sqrt(1.0 - cx**2)
+    cz = 0.0
+    
+    first_guess = np.array([1.0, 0.0, 0.0, 0.0])
+    centre = np.array([cx, cy, cz])
+    print(centre)
+    
+    options = dict()
+    options["xtol"] = 1e-8
+    
+    
+    sol = so.root(objective_function_foo, first_guess, centre, "hybr", True, options=options)
+    print("===========")
+    print("===========")
+    print("===========")
+    print(sol.x)
+    print(sol.message)
+    
+    a = sol.x[0]
+    b = sol.x[1]
+    c = sol.x[2]
+    d = sol.x[3]
+    
+    A = np.array([[a**2+b**2-c**2-d**2, 2.0*(b*c-a*d), 2.0*(b*d+a*c)], [2.0*(b*c+a*d), a**2-b**2+c**2-d**2, 2.0*(c*d-a*b)], [2.0*(b*d-a*c), 2.0*(c*d+a*b), a**2-b**2-c**2+d**2]])
+    print(A)
+    
+##################################### End of solver code #####################################    
+
+
+
+    
     
 
 if __name__ == '__main__':
@@ -907,7 +1086,7 @@ if __name__ == '__main__':
     #sphere_to_tangent_plane_mapping_test_harness()
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
-    plot_several_healpix_maps()
+    #plot_several_healpix_maps()
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()
@@ -921,3 +1100,6 @@ if __name__ == '__main__':
     #angular_separation_test_harness()
     #num_files_in_directory()
     #foo_caller()
+    to_from_standard_position_fast_test_harness()
+    
+    
