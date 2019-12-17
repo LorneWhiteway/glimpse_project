@@ -302,19 +302,12 @@ def cleanup_ra_rad(ra_rad):
     import numpy as np
     two_pi = 2.0 * np.pi
     ret = ra_rad
+    # Note that (unexpectedly) the order of the next two lines is crucial
+    # for proper handling of the case ra_rad = -epsilon.
     ret[np.where(ret < 0.0)] += two_pi
     ret[np.where(ret >= two_pi)] -= two_pi
     return ret
 
-# Cleanup ra so that it lies in [0, 360)
-def cleanup_ra(ra):
-    import numpy as np
-    print(ra)
-    ret = ra
-    ret[np.where(ret < 0.0)] += 360.0
-    ret[np.where(ret >= 360.0)] -= 360.0
-    return ret
-    
 
 ################
 # Example code for timing
@@ -512,7 +505,7 @@ def standard_position_fast_core(x, y, z, ra_centre, dec_centre, to):
     if not to:
         A = np.linalg.inv(A)
     new_xyz = np.dot(np.column_stack((x, y, z)), A)
-    rotated_ra = cleanup_ra(np.degrees(np.arctan2(new_xyz[:,1], new_xyz[:,0])))
+    rotated_ra = np.degrees(cleanup_ra_rad(np.arctan2(new_xyz[:,1], new_xyz[:,0])))
     rotated_dec = np.degrees(np.arcsin(new_xyz[:,2]))
     return (rotated_ra, rotated_dec)
 
@@ -856,6 +849,46 @@ def angular_separation_test_harness():
     print(np.degrees(angular_separation(0.0, 0.0, 5.0, 35.0)))
 
 
+# Same rules as for angular_separation
+def angular_separation_fast(sin_ra1, cos_ra1, sin_dec1, cos_dec1, ra2, dec2):
+
+    import numpy as np
+    
+    ra2_rad = np.radians(ra2)
+    dec2_rad = np.radians(dec2)
+    
+    sin_ra2 = np.sin(ra2_rad)
+    cos_ra2 = np.cos(ra2_rad)
+    sin_dec2 = np.sin(dec2_rad)
+    cos_dec2 = np.cos(dec2_rad)
+    
+    # See my book p. GL 143
+    a = (0.5 - 0.5 * cos_dec1 * cos_dec2 - 0.5 * sin_dec1 * sin_dec2) + cos_dec1 * cos_dec2 * (0.5 - 0.5 * cos_ra1 * cos_ra2 - 0.5 * sin_ra1 * sin_ra2)
+    a = bound_between(a, 0.0, 1.0) # 'a' might fall slightly outside [0, 1] due to numerical issues; fix this up.
+    return 2.0 * np.arcsin(np.sqrt(a))
+    
+    
+def angular_separation_fast_test_harness():
+    import numpy as np
+    ra1 = np.array([0.0, 40.0, 90.0, 180.0, 271.0, 280.0])
+    dec1 = np.array([0.0, 40.0, -90.0, 87.0, 0.0, -35.0])
+    
+    ra2 = 270.0
+    dec2 = 0.0
+    
+    sin_ra1 = np.sin(np.radians(ra1))
+    cos_ra1 = np.cos(np.radians(ra1))
+    sin_dec1 = np.sin(np.radians(dec1))
+    cos_dec1 = np.cos(np.radians(dec1))
+    
+    res1 = angular_separation_fast(sin_ra1, cos_ra1, sin_dec1, cos_dec1, ra2, dec2)
+    res2 = angular_separation(ra1, dec1, ra2, dec2)
+    
+    print(res1)
+    print("=========")
+    print(res2)
+
+
 # Will process ids in the range [ids_to_process_start, ids_to_process_end). Set ids_to_process_end to -1 to mean "to the end"
 def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, ids_to_process_start, ids_to_process_end, output_directory, output_file_root):
 
@@ -1100,6 +1133,6 @@ if __name__ == '__main__':
     #angular_separation_test_harness()
     #num_files_in_directory()
     #foo_caller()
-    to_from_standard_position_fast_test_harness()
-    
+    #to_from_standard_position_fast_test_harness()
+    angular_separation_fast_test_harness()
     
