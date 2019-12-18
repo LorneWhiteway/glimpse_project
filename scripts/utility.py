@@ -4,7 +4,6 @@
 ########################## Start of one-off utilities ##########################
 
 
-# catalogue_filename will resemble ".../Buzzard_192.2766.glimpse.cat.fits"
 def correct_one_shear_catalogue(catalogue_filename):
     
     from astropy.table import Table
@@ -12,17 +11,33 @@ def correct_one_shear_catalogue(catalogue_filename):
     
     print("Processing {}...".format(catalogue_filename))
     
-    list_of_field_names = ["RA", "DEC", "E1", "E2", "true_z"]
-    list_of_data_columns = get_from_fits_file(catalogue_filename, field_names)
+    #list_of_field_names = ["RA", "DEC", "E1", "E2", "true_z"]
+    list_of_field_names = ["ra_gal", "dec_gal", "e1_gal", "e2_gal", "z"]
+    list_of_data_columns = get_from_fits_file(catalogue_filename, list_of_field_names)
         
-    list_of_data_columns[2] *= -1.0 # E1
-    list_of_data_columns[3] *= -1.0 # E2
+    list_of_data_columns[2] *= -1.0 # e1_gal
+    list_of_data_columns[3] *= -1.0 # e2_gal
     
-    output_filename = catalogue_filename.replace("/output/", "/output1/")
+    #output_filename = catalogue_filename.replace("/output/", "/output1/")
+    output_filename = catalogue_filename.replace(".fits", ".negative.fits")
     
     write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns)
+    
+    
+def glimpse_sign_experiment():
 
+    import matplotlib.pyplot as plt
 
+    glimpse_output_file = "/share/splinter/ucapwhi/glimpse_project/shear_sign_experiment/output.fits"
+    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
+    
+    glimpse_output_file_negative = "/share/splinter/ucapwhi/glimpse_project/shear_sign_experiment/output.negative.fits"
+    (ra_negative, dec_negative, kappa_negative) = get_from_glimpse(glimpse_output_file_negative)
+    
+    plt.scatter(kappa, kappa_negative, s=1)
+    plt.show()
+    
+    
 
 def correct_one_shear_catalogue_caller():
     
@@ -30,6 +45,7 @@ def correct_one_shear_catalogue_caller():
     filelist = glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.glimpse.cat.fits")
     for f in filelist: 
         correct_one_shear_catalogue(f)
+    
 
 
 def create_cutouts_ids_to_process_from_job_number(job_number):
@@ -79,6 +95,37 @@ def redshift_histogram():
         print("{0:.2f}\t{1:.2f}\t{2:d}".format(b0, b1, h))
 
     
+def kappa_histogram():
+
+    import matplotlib.pyplot as plt
+    import healpy as hp
+    import numpy as np
+    
+    path = "/share/splinter/ucapwhi/glimpse_project/output/"
+    f = "Mcal_0.2_1.3_90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat"
+    m = hp.read_map(path + f)
+    
+    plt.hist(m[np.where(m != 0.0)], bins = 50)
+    plt.show()
+    
+def show_glimpse_output_as_image():
+
+    import numpy as np
+    import math
+    import matplotlib.pyplot as plt
+
+    glimpse_output_file = "/share/splinter/ucapwhi/glimpse_project/shear_sign_experiment/output.negative.fits"
+    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
+    
+    n = int(math.sqrt(kappa.shape[0]))
+    
+    kappa_as_2d_array = np.reshape(kappa, [n, n])
+    
+    plt.imshow(kappa_as_2d_array)
+    plt.show()
+    
+    
+
     
 # Written to produce data for Niall; used on 10 Dec 2019
 def shear_stdev():
@@ -109,18 +156,18 @@ def print_list_of_healpixels():
     for (i, id) in zip(range(len(ids)), ids):
         print(i, id)
 
-def add_dummy_redshift_column_to_metacal():
+def add_dummy_redshift_column(file_name):
 
     import numpy as np
     
     list_of_field_names = ["RA", "DEC", "E1", "E2", "E1_RANDOM", "E2_RANDOM"]
-    list_of_data_columns = get_from_fits_file(metacal_data_file_name(), list_of_field_names)
+    list_of_data_columns = get_from_fits_file(file_name, list_of_field_names)
     
     dummy_z = np.ones(list_of_data_columns[0].shape[0])
     list_of_field_names.append("DUMMY_Z")
     list_of_data_columns.append(dummy_z)
     
-    write_to_fits_file(metacal_data_file_name().replace(".fits", ".new.fits"), list_of_field_names, list_of_data_columns)
+    write_to_fits_file(file_name.replace(".fits", ".new.fits"), list_of_field_names, list_of_data_columns)
     
 
 def save_buzzard_truth():
@@ -583,6 +630,7 @@ def plot_several_healpix_maps():
     import healpy as hp
     import numpy as np
     import matplotlib.pyplot as plt
+    import skymapper
     
     nside = 1024
 
@@ -593,7 +641,7 @@ def plot_several_healpix_maps():
     path = "/share/splinter/ucapwhi/glimpse_project/output/"
     #filenames = ["Buzzard_192.90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat", "Buzzard_192.90_110_2048_downgraded_to_1024.glimpse.merged.values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
     #filenames = ["patch_1242_90_110_2048_values.dat"]
-    filenames = []
+    filenames = ["Mcal_0.2_1.3_90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat"]
         
     
     weight_maps = []
@@ -613,19 +661,19 @@ def plot_several_healpix_maps():
         
     # 2. other maps
         
-    if True:
+    if False:
         # Also plot some glimpse input data
         f = "Mcal_0.2_1.3.1689.glimpse.cat.fits"
         maps.append(fits_catalog_to_healpix_map(path + f, nside, False))
         titles.append(f)
     
-    if True:
+    if False:
         # Also plot glimpse output lattice
         f = "Mcal_0.2_1.3.1689.glimpse.out.fits"
         maps.append(glimpse_output_to_healpix_map(path + f, nside*4, False))
         titles.append(f + " values")
         
-    if True:
+    if False:
         # Also plot glimpse lattice points
         f = "Mcal_0.2_1.3.1689.glimpse.out.fits"
         maps.append(glimpse_lattice_points_to_healpix_map(path + f, nside*4, False))
@@ -658,17 +706,34 @@ def plot_several_healpix_maps():
     
     for map, title, i in zip(maps, titles, range(len(maps))):
         if False:
-            #hp.mollview(map, fig=i, title=title)
-            pass
-        else:
+            hp.mollview(map, fig=i, title=title)
+        elif False:
             #rot = (326.25, 12.024699, 0.0)
-            rot = (180.0, 0.0, 0.0)
-            #rot = (0.0, 0.0, 0.0)
-            hp.gnomview(map, fig=i, rot=rot, title=title, reso=4.0, xsize=400) # , max=0.104, min=-0.0264)
-        hp.graticule()
+            #rot = (180.0, 0.0, 0.0)
+            rot = (75.0, -55.0, 0.0)
+            hp.gnomview(map, fig=i, rot=rot, title=title, reso=3.3, xsize=400) # , max=0.104, min=-0.0264)
+        else:
+            rot = (75.0, -55.0, 0.0)
+            hp.cartview(map, fig=i, rot=rot, title=title, xsize=400) # , max=0.104, min=-0.0264)
+        
+        hp.graticule(dpar=5.0)
     
     plt.show()
     
+
+def downgrade_map():
+    
+    import healpy as hp
+    path = "/share/splinter/ucapwhi/glimpse_project/output/"
+    f_in = "Mcal_0.2_1.3_90_110_2048.glimpse.merged.values.dat"
+    f_out = "Mcal_0.2_1.3_90_110_2048_downgraded_to_1024.glimpse.merged.values.dat"
+    
+    
+    m = hp.read_map(path + f_in)
+    m_new = hp.ud_grade(m, 1024)
+    hp.write_map(path + f_out, m_new, overwrite=True)
+
+
 
 def clean_up_edges():
 
@@ -679,17 +744,18 @@ def clean_up_edges():
     do_nest = False
     nside = 1024
     path = "/share/splinter/ucapwhi/glimpse_project/output/"
-    old_filename = "Buzzard_192.90_110_2048_downgraded_to_1024.glimpse.merged.values.dat"
-    new_filename = "Buzzard_192.90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat"
-    new_filename_png = "Buzzard_192.90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.png"
-
+    project = "Mcal_0.2_1.3_90_110_2048_downgraded_to_1024"
+    old_filename = project + ".glimpse.merged.values.dat"
+    new_filename = project + "_masked.glimpse.merged.values.dat"
+    new_filename_png = project + "_masked.glimpse.merged.values.png"
     
+    original_catalogue_file_name = metacal_data_file_name()
     
     m = hp.read_map(path + old_filename)
-    (ra, dec) = get_from_fits_file(buzzard_data_file_name(), ["RA", "DEC"])
+    
+    (ra, dec) = get_from_fits_file(original_catalogue_file_name, ["RA", "DEC"])
     
     # Create a mask that is zero in healpixels where there are no source galaxies and one elsewhere.
-    
     ids = hp.ang2pix(nside, ra, dec, do_nest, lonlat=True)
     mask = np.zeros(hp.nside2npix(nside))
     for id in ids:
@@ -988,17 +1054,6 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
 
 
 
-def downgrade_map():
-    
-    import healpy as hp
-    path = "/share/splinter/ucapwhi/glimpse_project/output/"
-    f_in = "Buzzard_192.90_110_2018.glimpse.merged.values.dat"
-    f_out = "Buzzard_192.90_110_2048_downgraded_to_1024.glimpse.merged.values.dat"
-    
-    
-    m = hp.read_map(path + f_in)
-    m_new = hp.ud_grade(m, 1024)
-    hp.write_map(path + f_out, m_new, overwrite=True)
     
 
 ##################################### Start of solver code #####################################
@@ -1115,7 +1170,6 @@ if __name__ == '__main__':
     #kappa_values_in_one_fine_pixel()
     #tester()
     #save_buzzard_truth()
-    #clean_up_edges()
     #sphere_to_tangent_plane_mapping_test_harness()
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
@@ -1125,14 +1179,17 @@ if __name__ == '__main__':
     #to_from_standard_position_test_harness()
     #create_cutouts_run(int(sys.argv[1]))
     #correct_one_shear_catalogue_caller()
-    #downgrade_map()
     #redshift_histogram()
     #downgrade_map()
+    #clean_up_edges()
     #shear_stdev()
-    #add_dummy_redshift_column_to_metacal()
+    add_dummy_redshift_column(metacal_data_file_name())
     #angular_separation_test_harness()
     #num_files_in_directory()
-    #foo_caller()
     #to_from_standard_position_fast_test_harness()
-    angular_separation_fast_test_harness()
+    #angular_separation_fast_test_harness()
+    #correct_one_shear_catalogue("/share/splinter/ucapwhi/glimpse_project/shear_sign_experiment/cat_3_0.fits")
+    #glimpse_sign_experiment()
+    #kappa_histogram()
+    #show_glimpse_output_as_image()
     
