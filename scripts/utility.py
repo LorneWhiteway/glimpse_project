@@ -66,13 +66,30 @@ def create_cutouts_run(job_number):
     shear_names = "E1,E2"
     other_field_names = "DUMMY_Z"
     nside = 16
-    nest = False
     cutout_side_in_degrees = 16
     output_directory = "/share/splinter/ucapwhi/glimpse_project/output"
     output_file_root = "Mcal_0.2_1.3.{}.glimpse.cat.fits"
     ids_to_process = create_cutouts_ids_to_process_from_job_number(job_number)
 
-    create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, nest, cutout_side_in_degrees, output_directory, output_file_root, ids_to_process)
+    create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, output_directory, output_file_root, ids_to_process)
+    
+    
+def create_cutouts_caller(ini_file_name):
+
+    input_catalogue = metacal_data_file_name()
+    catformat = "fits"
+    raname = "RA"
+    decname = "DEC"
+    shear_names = "E1,E2"
+    other_field_names = "DUMMY_Z"
+    nside = 16
+    cutout_side_in_degrees = 16
+    ids_to_process_start = 0
+    ids_to_process_end = -1
+    output_directory = "/share/splinter/ucapwhi/glimpse_project/output"
+    output_file_root = "Mcal_0.2_1.3.{}.glimpse.cat.fits"
+
+    create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, ids_to_process_start, ids_to_process_end, output_directory, output_file_root)
 
 
 def num_files_in_directory():
@@ -1164,7 +1181,6 @@ def solver():
 
 if __name__ == '__main__':
 
-    import sys
 
     #print_list_of_healpixels()
     #kappa_values_in_one_fine_pixel()
@@ -1177,7 +1193,6 @@ if __name__ == '__main__':
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()
-    #create_cutouts_run(int(sys.argv[1]))
     #correct_one_shear_catalogue_caller()
     #redshift_histogram()
     #downgrade_map()
