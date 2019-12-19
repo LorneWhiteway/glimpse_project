@@ -16,7 +16,7 @@ def run(ini_filename, task):
     assert (task in tasks), "task should be one of create_cutouts, run_glimpse or merge"
     
     if task == tasks[0]:
-        utility.create_cutouts(ini_filename)
+        utility.create_cutouts_caller(ini_filename)
     elif task == tasks[1]:
         utility.run_glimpse(ini_filename)
     elif task == tasks[2]:

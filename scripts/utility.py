@@ -4,6 +4,31 @@
 ########################## Start of one-off utilities ##########################
 
 
+def compare_two_cutouts():
+
+    import matplotlib.pyplot as plt
+
+    (ra_1, dec_1, e1_1, e2_1) = get_from_fits_file("/share/splinter/ucapwhi/glimpse_project/output/Mcal_0.2_1.3.2218.glimpse.cat.fits", ["RA", "DEC", "E1", "E2"])
+    (ra_2, dec_2, e1_2, e2_2) = get_from_fits_file("/share/splinter/ucapwhi/glimpse_project/output_Mcal_badsign/Mcal_0.2_1.3.2218.glimpse.cat.fits", ["RA", "DEC", "E1", "E2"])
+    
+    #plt.scatter(e1_1[:3000], e1_2[:3000], s=1)
+    #plt.show()
+    print(e1_1[:5])
+    print(e1_2[:5])
+    #plt.plot(ra_1)
+    #plt.plot(ra_2)
+    #plt.show()
+    #i = 0
+    #while True:
+    #    if (abs(ra_1[i] - ra_2[i]) > 1e-10):
+    #        print(i)
+    #        return
+    #    i += 1
+    
+    
+
+
+
 def correct_one_shear_catalogue(catalogue_filename):
     
     from astropy.table import Table
@@ -47,50 +72,8 @@ def correct_one_shear_catalogue_caller():
         correct_one_shear_catalogue(f)
     
 
-
-def create_cutouts_ids_to_process_from_job_number(job_number):
-    import numpy as np
-    
-    return np.arange(60) + 2478 + 60 * job_number  # See p. GL128
     
     
-
-
-
-def create_cutouts_run(job_number):
-
-    input_catalogue = metacal_data_file_name()
-    catformat = "fits"
-    raname = "RA"
-    decname = "DEC"
-    shear_names = "E1,E2"
-    other_field_names = "DUMMY_Z"
-    nside = 16
-    cutout_side_in_degrees = 16
-    output_directory = "/share/splinter/ucapwhi/glimpse_project/output"
-    output_file_root = "Mcal_0.2_1.3.{}.glimpse.cat.fits"
-    ids_to_process = create_cutouts_ids_to_process_from_job_number(job_number)
-
-    create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, output_directory, output_file_root, ids_to_process)
-    
-    
-def create_cutouts_caller(ini_file_name):
-
-    input_catalogue = metacal_data_file_name()
-    catformat = "fits"
-    raname = "RA"
-    decname = "DEC"
-    shear_names = "E1,E2"
-    other_field_names = "DUMMY_Z"
-    nside = 16
-    cutout_side_in_degrees = 16
-    ids_to_process_start = 0
-    ids_to_process_end = -1
-    output_directory = "/share/splinter/ucapwhi/glimpse_project/output"
-    output_file_root = "Mcal_0.2_1.3.{}.glimpse.cat.fits"
-
-    create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, ids_to_process_start, ids_to_process_end, output_directory, output_file_root)
-
 
 def num_files_in_directory():
     import glob
@@ -972,6 +955,8 @@ def angular_separation_fast_test_harness():
     print(res2)
 
 
+
+
 # Will process ids in the range [ids_to_process_start, ids_to_process_end). Set ids_to_process_end to -1 to mean "to the end"
 def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, ids_to_process_start, ids_to_process_end, output_directory, output_file_root):
 
@@ -982,10 +967,12 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
     import astropy.io.fits as pyfits
     import sys
     
+    
+    
+    
     create_directory_if_necessary(output_directory)
     assert catformat in ("csv", "fits"), "Catalogue format must be either 'fits' or 'csv'; {0} was given".format(catformat)
     assert hp.isnsideok(nside), "nside must be a valid Healpix nside"
-    
     all_field_names = [raname, decname]
     if other_field_names:
         all_field_names.extend(other_field_names.split(","))
@@ -993,6 +980,7 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
         parsed_shear_names = shear_names.split(",")
         assert (len(parsed_shear_names)%2==0), "shear_names should be omitted or be a comma-separated list of (an even number of) field names"
         all_field_names.extend(parsed_shear_names)
+    
     
     print('Processing ' + input_catalogue + '...')
     data = Table.read(input_catalogue, format=catformat)
@@ -1008,6 +996,10 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
     
     num_healpixels = hp.nside2npix(nside)
     num_digits = 1 + int(math.log10(num_healpixels))
+    
+    x = np.cos(np.radians(dec)) * np.cos(np.radians(ra))
+    y = np.cos(np.radians(dec)) * np.sin(np.radians(ra))
+    z = np.sin(np.radians(dec))
         
     print('Creating output files...')
 
@@ -1021,54 +1013,68 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
         
             (ra_centre, dec_centre) = hp.pix2ang(nside, healpix_id, nest=False, lonlat=True)
             
-            # See p. GL127. The factor of 1.1 is just for safety (there is some distortion mapping from the tangent plane to the sphere).
-            minimum_separation = np.degrees(np.min(angular_separation(ra, dec, ra_centre, dec_centre)))
-            if minimum_separation > 1.1 * (cutout_side_in_degrees * np.sqrt(2.0) / 2.0):
-                print("Do nothing as cutout will be empty; minimum separation is {} degrees".format(minimum_separation))
-            else:
-                ra_in = [np.sin(np.radians(ra)), np.cos(np.radians(ra))]
-                dec_in = [np.sin(np.radians(dec)), np.cos(np.radians(dec))]
+            
+            # Put the data in standard position relative to this centre point
+            (ra_standardised, dec_standardised) = to_standard_position_fast(x, y, z, ra_centre, dec_centre)
+            
+            # Which data lie in the standard cutout?
+            filter = is_in_standard_cutout(ra_standardised, dec_standardised, cutout_side_in_degrees)
+            
+            if filter[0].size > 0:
+                # Some galaxies to write
+                output_filename = (output_directory + "/" + output_file_root).format(str(healpix_id).zfill(num_digits))
                 
+                field_names = []
+                data_columns = []
                 
-                # Put the data in standard position relative to this centre point
-                (ra_standardised, dec_standardised) = to_standard_position(ra_in, dec_in, ra_centre, dec_centre)
-                
-                # Which data lie in the standard cutout?
-                filter = is_in_standard_cutout(ra_standardised, dec_standardised, cutout_side_in_degrees)
-                
-                if filter[0].size > 0:
-                    # Some galaxies to write
-                    output_filename = (output_directory + "/" + output_file_root).format(str(healpix_id).zfill(num_digits))
-                    
-                    field_names = []
-                    data_columns = []
-                    
-                    field_names.append(raname)
-                    data_columns.append(ra_standardised[filter])
-                                
-                    field_names.append(decname)
-                    data_columns.append(dec_standardised[filter])
-                    
-                    
-                    if shear_names:
-                        parsed_shear_names = shear_names.split(",")
-                        for (shear_name_1, shear_name_2) in zip(parsed_shear_names[0::2], parsed_shear_names[1::2]):
-                            (shear1, shear2) = rotate_shear_45_degrees(data[shear_name_1], data[shear_name_2])
+                field_names.append(raname)
+                data_columns.append(ra_standardised[filter])
                             
-                            field_names.append(shear_name_1)
-                            data_columns.append(shear1[filter])
-                            
-                            field_names.append(shear_name_2)
-                            data_columns.append(shear2[filter])
-                    
-                    for f in other_field_names.split(","):
-                        field_names.append(f)
-                        data_columns.append(data[f][filter])
-                       
-                    write_to_fits_file(output_filename, field_names, data_columns)
+                field_names.append(decname)
+                data_columns.append(dec_standardised[filter])
+                
+                
+                if shear_names:
+                    parsed_shear_names = shear_names.split(",")
+                    for (shear_name_1, shear_name_2) in zip(parsed_shear_names[0::2], parsed_shear_names[1::2]):
+                        (shear1, shear2) = rotate_shear_45_degrees(data[shear_name_1], data[shear_name_2])
+                        
+                        field_names.append(shear_name_1)
+                        data_columns.append(shear1[filter])
+                        
+                        field_names.append(shear_name_2)
+                        data_columns.append(shear2[filter])
+                
+                for f in other_field_names.split(","):
+                    field_names.append(f)
+                    data_columns.append(data[f][filter])
+                   
+                write_to_fits_file(output_filename, field_names, data_columns)
        
 
 
+
+def create_cutouts_caller(ini_file_name):
+
+    import configparser
+    
+    config = configparser.ConfigParser()
+    config.read(ini_file_name)
+
+    input_catalogue = config["create_cutouts"].get("input_catalogue")
+    catformat = config["create_cutouts"].get("catformat", "fits")
+    ra_name = config["create_cutouts"].get("ra_name", "RA")
+    dec_name = config["create_cutouts"].get("dec_name", "DEC")
+    shear_names = config["create_cutouts"].get("shear_names")
+    other_field_names = config["create_cutouts"].get("other_field_names")
+    nside = int(config["create_cutouts"].get("nside", "16"))
+    cutout_side_in_degrees = float(config["create_cutouts"].get("cutout_side_in_degrees", "16"))
+    ids_to_process_start = int(config["create_cutouts"].get("ids_to_process_start", "0"))
+    ids_to_process_end = int(config["create_cutouts"].get("ids_to_process_end", "-1"))
+    output_directory = config["project"].get("directory")
+    output_file_root = config["project"].get("project_name") + ".{}.glimpse.cat.fits"
+    
+    create_cutouts(input_catalogue, catformat, ra_name, dec_name, shear_names, other_field_names, nside, cutout_side_in_degrees, ids_to_process_start, ids_to_process_end, output_directory, output_file_root)
 
 
     
@@ -1198,7 +1204,7 @@ if __name__ == '__main__':
     #downgrade_map()
     #clean_up_edges()
     #shear_stdev()
-    add_dummy_redshift_column(metacal_data_file_name())
+    #add_dummy_redshift_column(metacal_data_file_name())
     #angular_separation_test_harness()
     #num_files_in_directory()
     #to_from_standard_position_fast_test_harness()
@@ -1207,4 +1213,5 @@ if __name__ == '__main__':
     #glimpse_sign_experiment()
     #kappa_histogram()
     #show_glimpse_output_as_image()
+    compare_two_cutouts()
     
