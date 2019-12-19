@@ -220,9 +220,13 @@ def glimpse_array_order():
 ########################## End of one-off utilities ##########################
 
 
-
-
-
+# Credit: Stephen Rauch at https://stackoverflow.com/questions/48494581
+# Interprets a string such as '[2:45:3] as a numpy 'slice' object for array indexing.
+def slice_from_string(slice_string):
+    slices = slice_string.split(',')
+    if len(slices) > 1:
+        return [slice_from_string(s.strip()) for s in slices]
+    return slice(*[int(x) for x in slice_string.split(':')])
 
 
 
@@ -387,29 +391,19 @@ def rotate_shear_45_degrees(e1, e2):
     return (-e2, e1)
 
 
-# ra can be either numpy arrays in degrees, or a 2-element list containing arrays of sin(radians(ra)) and cos(radians(ra)).
-# Same for dec.
+
 def to_standard_position(ra, dec, ra_centre, dec_centre):
     import numpy as np
 
+    ra_rad = np.radians(ra)
+    dec_rad = np.radians(dec)
     ra_centre_rad = np.radians(ra_centre)
     dec_centre_rad = np.radians(dec_centre)
 
-    if isinstance(ra, np.ndarray):
-        ra_rad = np.radians(ra)
-        sin_ra_diff = np.sin(ra_rad - ra_centre_rad)
-        cos_ra_diff = np.cos(ra_rad - ra_centre_rad)
-    else:
-        sin_ra_diff = ra[0] * np.cos(ra_centre_rad) - ra[1] * np.sin(ra_centre_rad) # np.sin(ra_rad - ra_centre_rad)
-        cos_ra_diff = ra[1] * np.cos(ra_centre_rad) + ra[0] * np.sin(ra_centre_rad) # np.cos(ra_rad - ra_centre_rad)
-        
-    if isinstance(dec, np.ndarray):
-        dec_rad = np.radians(dec)
-        sin_dec = np.sin(dec_rad)
-        cos_dec = np.cos(dec_rad)
-    else:
-        sin_dec = dec[0]
-        cos_dec = dec[1]
+    sin_ra_diff = np.sin(ra_rad - ra_centre_rad)
+    cos_ra_diff = np.cos(ra_rad - ra_centre_rad)
+    sin_dec = np.sin(dec_rad)
+    cos_dec = np.cos(dec_rad)
         
     
     # Move (ra_centre, dec_centre) to (0, 0)
@@ -468,22 +462,18 @@ def to_standard_position_test_harness():
     ra_centre = 72.0
     dec_centre = -18.0
     
-    #ra = np.linspace(0.0, 359.0, num = 360)
-    #dec = ra * 0 + 1.0
-    
-    theta = np.linspace(0.0, 2.0 * np.pi, num = 360, endpoint=False)
-    r = 10.0
-    ra = ra_centre + r * np.cos(theta)
-    dec = dec_centre + r * np.sin(theta)
-    
     if False:
-        ra_in = [np.sin(np.radians(ra)), np.cos(np.radians(ra))]
-        dec_in = [np.sin(np.radians(dec)), np.cos(np.radians(dec))]
+        ra = np.linspace(0.0, 359.0, num = 360)
+        dec = ra * 0 + 1.0
+        theta = ra
     else:
-        ra_in = ra
-        dec_in = dec
     
-    (ra_new, dec_new) = to_standard_position(ra_in, dec_in, ra_centre, dec_centre)
+        theta = np.linspace(0.0, 2.0 * np.pi, num = 360, endpoint=False)
+        r = 10.0
+        ra = ra_centre + r * np.cos(theta)
+        dec = dec_centre + r * np.sin(theta)
+    
+    (ra_new, dec_new) = to_standard_position(ra, dec, ra_centre, dec_centre)
     
     plt.scatter(ra_new, dec_new, c = theta)
     plt.show()
@@ -496,13 +486,16 @@ def from_standard_position_test_harness():
     ra_centre = 72.0
     dec_centre = -38.0
     
-    #ra = np.linspace(0.0, 359.0, num = 360)
-    #dec = ra * 0 + 1.0
-    
-    theta = np.linspace(0.0, 2.0 * np.pi, num = 360, endpoint=False) + np.pi/4.0
-    r = 10.0
-    ra = r * np.cos(theta) + 180.0
-    dec = r * np.sin(theta)
+    if False:
+        ra = np.linspace(0.0, 359.0, num = 360)
+        dec = ra * 0.0 + 1.0
+        theta = ra
+    else:
+        
+        theta = np.linspace(0.0, 2.0 * np.pi, num = 360, endpoint=False) + np.pi/4.0
+        r = 10.0
+        ra = r * np.cos(theta) + 180.0
+        dec = r * np.sin(theta)
     
     (ra_new, dec_new) = from_standard_position(ra, dec, ra_centre, dec_centre)
     
@@ -958,7 +951,7 @@ def angular_separation_fast_test_harness():
 
 
 # Will process ids in the range [ids_to_process_start, ids_to_process_end). Set ids_to_process_end to -1 to mean "to the end"
-def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, ids_to_process_start, ids_to_process_end, output_directory, output_file_root):
+def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, ids_to_process_slice, output_directory, output_file_root):
 
     from astropy.table import Table
     import healpy as hp
@@ -1003,7 +996,7 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
         
     print('Creating output files...')
 
-    for healpix_id in range(num_healpixels)[ids_to_process_start:ids_to_process_end]:
+    for healpix_id in range(num_healpixels)[ids_to_process_slice]:
 
         print("Processing {} of {}".format(healpix_id, num_healpixels))
         
@@ -1069,8 +1062,7 @@ def create_cutouts_caller(ini_file_name):
     other_field_names = config["create_cutouts"].get("other_field_names")
     nside = int(config["create_cutouts"].get("nside", "16"))
     cutout_side_in_degrees = float(config["create_cutouts"].get("cutout_side_in_degrees", "16"))
-    ids_to_process_start = int(config["create_cutouts"].get("ids_to_process_start", "0"))
-    ids_to_process_end = int(config["create_cutouts"].get("ids_to_process_end", "-1"))
+    ids_to_process_slice = config["create_cutouts"].get("ids_to_process_slice", "[:]")
     output_directory = config["project"].get("directory")
     output_file_root = config["project"].get("project_name") + ".{}.glimpse.cat.fits"
     
