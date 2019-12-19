@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 
 
-def main(job_id):
+def main(ini_file_name, job_id):
 
     import glob
     import subprocess
+    import configparser
     
-    output_directory = "/share/splinter/ucapwhi/glimpse_project/output/"
-    project = "Mcal_0.2_1.3"
-    exe_file = "/share/splinter/ucapwhi/glimpse_project/Glimpse/build/glimpse"
+    config = configparser.ConfigParser()
+    config.read(ini_file_name)
+    
+    output_directory = config["project"].get("directory")
+    project = config["project"].get("project_name")
+    exe_file = config["project"].get("glimpse_executable")
     
     glimpse_cat_file_pattern = output_directory + project + ".*.glimpse.cat.fits"
     id_list = [int(f.split(".")[-4]) for f in glob.glob(glimpse_cat_file_pattern)]
@@ -22,7 +26,6 @@ def main(job_id):
     ini_file = output_directory + project  + ".glimpse.ini"
     cat_file = output_directory + project + "." + this_healpix_id_as_string + ".glimpse.cat.fits"
     out_file = output_directory + project + "." + this_healpix_id_as_string + ".glimpse.out.fits"
-    
 
     subprocess.run([exe_file, ini_file, cat_file, out_file])
 
@@ -34,6 +37,6 @@ def main(job_id):
 
 if __name__ == '__main__':
     import sys
-    if len(sys.argv) <= 1:
-        raise RuntimeError("Usage: glimpse_caller.py job_id")
-    main(int(sys.argv[1]))
+    if len(sys.argv) <= 2:
+        raise RuntimeError("Usage: glimpse_caller.py ini_file job_id")
+    main(sys.argv[1], int(sys.argv[2]))
