@@ -227,13 +227,31 @@ def glimpse_array_order():
 ########################## End of one-off utilities ##########################
 
 
-# Credit: Stephen Rauch at https://stackoverflow.com/questions/48494581
-# Interprets a string such as '[2:45:3] as a numpy 'slice' object for array indexing.
-def slice_from_string(slice_string):
-    slices = slice_string.split(',')
-    if len(slices) > 1:
-        return [slice_from_string(s.strip()) for s in slices]
-    return slice(*[int(x) for x in slice_string.split(':')])
+    
+# job_control will be a string such as "" or ":-1" or "2:17:3"
+# Assumes a is one-dimensional
+# I tried https://stackoverflow.com/questions/48494581 but it doesn't handle omitted arguments.
+def array_slice_from_job_control_string(a, job_control):
+    tokens = job_control.split(':')
+    tokens.extend(("", "", ""))
+    start = int(tokens[0]) if len(tokens[0]) > 0 else 0
+    end = int(tokens[1]) if len(tokens[1]) > 0 else len(a)
+    stride = int(tokens[2]) if len(tokens[2]) > 0 else 1
+    return a[start:end:stride]
+
+
+
+    
+def array_slice_from_job_control_string_test_harness():
+    import numpy as np
+    
+    a = np.arange(20)
+    job_control = ""
+    
+    print(array_slice_from_job_control_string(a, job_control))
+    
+    
+    
 
 
 
@@ -729,55 +747,26 @@ def plot_several_healpix_maps():
     plt.show()
     
 
-def downgrade_map():
-    
-    import healpy as hp
-    path = "/share/splinter/ucapwhi/glimpse_project/output/"
-    f_in = "Mcal_0.2_1.3_90_110_2048.glimpse.merged.values.dat"
-    f_out = "Mcal_0.2_1.3_90_110_2048_downgraded_to_1024.glimpse.merged.values.dat"
-    
-    
-    m = hp.read_map(path + f_in)
-    m_new = hp.ud_grade(m, 1024)
-    write_healpix_array_to_file(m_new, path + f_out, False)
-    
 
 
 
-def clean_up_edges():
+def clean_up_edges(input_catalogue_filename, ra_name, dec_name, map_to_be_masked):
 
     import healpy as hp
     import numpy as np
-    import matplotlib.pyplot as plt
     
-    do_nest = False
-    nside = 1024
-    path = "/share/splinter/ucapwhi/glimpse_project/output/"
-    project = "Mcal_0.2_1.3_90_110_2048_downgraded_to_1024"
-    old_filename = project + ".glimpse.merged.values.dat"
-    new_filename = project + "_masked.glimpse.merged.values.dat"
-    new_filename_png = project + "_masked.glimpse.merged.values.png"
+    nside = hp.get_nside(map_to_be_masked)
     
-    original_catalogue_file_name = metacal_data_file_name()
-    
-    m = hp.read_map(path + old_filename)
-    
-    (ra, dec) = get_from_fits_file(original_catalogue_file_name, ["RA", "DEC"])
+    (ra, dec) = get_from_fits_file(input_catalogue_filename, [ra_name, dec_name])
     
     # Create a mask that is zero in healpixels where there are no source galaxies and one elsewhere.
-    ids = hp.ang2pix(nside, ra, dec, do_nest, lonlat=True)
+    ids = hp.ang2pix(nside, ra, dec, nest=False, lonlat=True)
     mask = np.zeros(hp.nside2npix(nside))
     for id in ids:
         mask[id] = 1.0 
     
-    # Apply the mask
-    m *= mask
+    return (map_to_be_masked * mask)
     
-    write_healpix_array_to_file(m, path + new_filename, False)
-    
-    # Also save as png
-    hp.mollview(m, title=new_filename)
-    plt.savefig(path + new_filename_png)
     
 
 
@@ -961,7 +950,7 @@ def angular_separation_fast_test_harness():
 
 
 # Will process ids in the range [ids_to_process_start, ids_to_process_end). Set ids_to_process_end to -1 to mean "to the end"
-def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, job_control, output_directory, output_file_root):
+def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, job_control, output_directory, output_file_root):
 
     from astropy.table import Table
     import healpy as hp
@@ -974,7 +963,6 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
     
     
     create_directory_if_necessary(output_directory)
-    assert catformat in ("csv", "fits"), "Catalogue format must be either 'fits' or 'csv'; {0} was given".format(catformat)
     assert hp.isnsideok(nside), "nside must be a valid Healpix nside"
     all_field_names = [raname, decname]
     if other_field_names:
@@ -986,7 +974,7 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
     
     
     print('Processing ' + input_catalogue + '...')
-    data = Table.read(input_catalogue, format=catformat)
+    data = Table.read(input_catalogue, format='fits') # Other formats such as cvs are also supported here...
     for field_name in all_field_names:
         assert field_name in data.colnames, "{0} is not a column in the input file {1}".format(field_name, input_catalogue)
     data = data[all_field_names]
@@ -1023,7 +1011,7 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
     
     critical_angular_separation = 1.1 * (cutout_side_in_degrees * np.sqrt(2.0) / 2.0)
 
-    for healpix_id in range(num_healpixels)[slice_from_string(job_control)]:
+    for healpix_id in array_slice_from_job_control_string(range(num_healpixels), job_control):
 
         print("Processing {} of {}".format(healpix_id, num_healpixels))
         
@@ -1109,7 +1097,6 @@ def create_cutouts_caller(ini_file_name, job_control):
     config.read(ini_file_name)
 
     input_catalogue = config["create_cutouts"].get("input_catalogue")
-    catformat = config["create_cutouts"].get("catformat", "fits")
     ra_name = config["create_cutouts"].get("ra_name", "RA")
     dec_name = config["create_cutouts"].get("dec_name", "DEC")
     shear_names = config["create_cutouts"].get("shear_names")
@@ -1119,7 +1106,7 @@ def create_cutouts_caller(ini_file_name, job_control):
     output_directory = config["project"].get("directory")
     output_file_root = config["project"].get("project_name") + ".{}.glimpse.cat.fits"
     
-    create_cutouts(input_catalogue, catformat, ra_name, dec_name, shear_names, other_field_names, nside, cutout_side_in_degrees, job_control, output_directory, output_file_root)
+    create_cutouts(input_catalogue, ra_name, dec_name, shear_names, other_field_names, nside, cutout_side_in_degrees, job_control, output_directory, output_file_root)
 
 
 ######################### End of create_cutouts code #########################
@@ -1192,7 +1179,7 @@ def two_axis_weight_function_test_harness():
    
     
 
-def merge(input_file_spec, outer_border, inner_border, output_file_root, output_nside, cutouts_nside, job_control):
+def merge(input_file_spec, outer_border, inner_border, output_file_root, intermediate_nside, output_nside, cutouts_nside, apply_galaxy_mask, input_catalogue, ra_name, dec_name, job_control):
     import math
     import astropy.io.fits as pyfits
     import healpy as hp
@@ -1212,16 +1199,16 @@ def merge(input_file_spec, outer_border, inner_border, output_file_root, output_
     output_debugging_info = False
     g_index_special = 6318085 # Dump debugging info for this pixel
     if output_debugging_info:
-        print("Debugging point: RA={}; DEC={}; index={}".format(hp.pix2ang(output_nside, g_index_special, output_nest, lonlat=True)[0], hp.pix2ang(output_nside, g_index_special, output_nest, lonlat=True)[1], g_index_special))
+        print("Debugging point: RA={}; DEC={}; index={}".format(hp.pix2ang(intermediate_nside, g_index_special, output_nest, lonlat=True)[0], hp.pix2ang(intermediate_nside, g_index_special, output_nest, lonlat=True)[1], g_index_special))
     
     assert (outer_border <= inner_border), "inner_border must not be larger than outer_border"
 
-    num_healpixels = hp.nside2npix(output_nside)
+    num_healpixels = hp.nside2npix(intermediate_nside)
 
     # "g_" means "global" i.e. for the whole sphere. Indices into these arrays must repect the 'output_nest' parameter.
     g_weighted_values = np.zeros(num_healpixels)
     g_weights = np.zeros(num_healpixels)
-    g_centres = hp.pix2ang(output_nside, np.arange(num_healpixels), output_nest, True)
+    g_centres = hp.pix2ang(intermediate_nside, np.arange(num_healpixels), output_nest, True)
     
     g_centres_ra_rad = np.radians(g_centres[RA])
     g_centres_dec_rad = np.radians(g_centres[DEC])
@@ -1233,7 +1220,8 @@ def merge(input_file_spec, outer_border, inner_border, output_file_root, output_
     
     list_of_input_files = glob.glob(input_file_spec)
     list_of_input_files.sort()
-    list_of_input_files = list_of_input_files[slice_from_string(job_control)]
+    list_of_input_files = array_slice_from_job_control_string(list_of_input_files, job_control)
+    
     num_input_files = len(list_of_input_files)
 
     assert (num_input_files > 0), "No input files found"
@@ -1243,7 +1231,7 @@ def merge(input_file_spec, outer_border, inner_border, output_file_root, output_
     for (filename, file_index) in zip(list_of_input_files, range(num_input_files)):
 
         if not output_debugging_info:
-            print("Processing {} of {}: {}...".format(file_index+1, num_input_files, filename))
+            print("Processing {} of {}: {}...".format(file_index, num_input_files, filename))
             
         # "p_" means "for this one picture"
         (p_ra, p_dec, p_val) = get_glimpse_output_data(filename)
@@ -1348,6 +1336,17 @@ def merge(input_file_spec, outer_border, inner_border, output_file_root, output_
         print("g_weighted_values[{}]={}".format(g_index_special, g_weighted_values[g_index_special]))
         print("g_weights[{}]={}".format(g_index_special, g_weights[g_index_special]))
         print("g_average_values[{}]={}".format(g_index_special, g_average_values[g_index_special]))
+        
+    # Downgrade to final output resolution
+    if output_nside != intermediate_nside:
+        g_average_values = hp.ud_grade(g_average_values, output_nside)
+        g_weights = hp.ud_grade(g_weights, output_nside)
+        
+    # Mask out pixels where there were no input galaxies
+    if apply_galaxy_mask:
+        print("Applying galaxy mask...")
+        g_average_values = clean_up_edges(input_catalogue, ra_name, dec_name, g_average_values)
+        
    
     for (filename_part, array) in zip(["_values", "_weights"], [g_average_values, g_weights]):
         dat_filename = output_file_root + filename_part + ".dat"
@@ -1364,12 +1363,22 @@ def merge_caller(ini_file_name, job_control):
     
     outer_border = int(config["merge"].get("outer_border"))
     inner_border = int(config["merge"].get("inner_border"))
+    intermediate_nside = int(config["merge"].get("intermediate_nside"))
     output_nside = int(config["merge"].get("output_nside"))
     input_file_spec = config["project"].get("directory") + config["project"].get("project_name") + ".*.glimpse.out.fits"
     output_file_root = config["project"].get("directory") + config["project"].get("project_name")
+    # Info needed to parse the output glimpse file names...
     cutouts_nside = int(config["create_cutouts"].get("nside"))
+    
+    # Info needed for masking
+    apply_galaxy_mask = config['merge'].getboolean('apply_galaxy_mask?', fallback=False)
+    input_catalogue = config["create_cutouts"].get("input_catalogue")
+    ra_name = config["create_cutouts"].get("ra_name", "RA")
+    dec_name = config["create_cutouts"].get("dec_name", "DEC")
 
-    merge(input_file_spec, outer_border, inner_border, output_file_root, output_nside, cutouts_nside, job_control)
+    
+
+    merge(input_file_spec, outer_border, inner_border, output_file_root, intermediate_nside, output_nside, cutouts_nside, apply_galaxy_mask, input_catalogue, ra_name, dec_name, job_control)
 
 
 
@@ -1395,7 +1404,6 @@ if __name__ == '__main__':
     #to_from_standard_position_test_harness()
     #correct_one_shear_catalogue_caller()
     #redshift_histogram()
-    #downgrade_map()
     #clean_up_edges()
     #shear_stdev()
     #add_dummy_redshift_column(metacal_data_file_name())
@@ -1407,6 +1415,8 @@ if __name__ == '__main__':
     #glimpse_sign_experiment()
     #kappa_histogram()
     #show_glimpse_output_as_image()
-    compare_two_cutouts()
+    #compare_two_cutouts()
     #joint_filter_example()
+    array_slice_from_job_control_string_test_harness()
+    
     

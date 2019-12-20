@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+""" 
+    Interface file for for 'glimpse on curved sky' project.
+    Author: Lorne Whiteway.
+"""
 
     
 
@@ -38,7 +42,7 @@ if __name__ == '__main__':
 
         parser.add_argument('-i', '--ini_file', type = str, required = True, help = "Input ini file name.")
         parser.add_argument('-t', '--task', type = str, required = True, help = "Task to be performed; one of create_cutouts, run_glimpse or merge.")
-        parser.add_argument('-j', '--job_control', type = str, required = False, default = "::", help = "Numpy slice for which healpixels to process e.g. 2:10:2; default is :: i.e. all. Enclose in double quotes.")
+        parser.add_argument('-j', '--job_control', type = str, required = False, default = "", help = "Numpy slice for which healpixels to process e.g. 2:10:2; default is empty string i.e. all. Enclose in double quotes.")
         
         args = parser.parse_args()
         
