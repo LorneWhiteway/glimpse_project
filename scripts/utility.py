@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+""" 
+    Core file for for 'glimpse on curved sky' project.
+    Author: Lorne Whiteway.
+"""
+
 ########################## Start of one-off utilities ##########################
 
 
