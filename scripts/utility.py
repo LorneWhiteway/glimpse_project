@@ -1347,15 +1347,16 @@ def merge(input_file_spec, outer_border, inner_border, output_file_root, interme
         print("Applying galaxy mask...")
         g_average_values = clean_up_edges(input_catalogue, ra_name, dec_name, g_average_values)
         
-   
-    for (filename_part, array) in zip(["_values", "_weights"], [g_average_values, g_weights]):
-        dat_filename = output_file_root + filename_part + ".dat"
-        # Save data to healpix format file
+    # Save data to healpix format file
+    for (filename_part, array) in zip(["values", "weights"], [g_average_values, g_weights]):
+        dat_filename = output_file_root + ".glimpse.merged." + filename_part + ".dat"
+        print("Writing {}...".format(dat_filename))
         write_healpix_array_to_file(array, dat_filename, output_nest)
 
 
 
 def merge_caller(ini_file_name, job_control):
+    
     import configparser
     
     config = configparser.ConfigParser()
@@ -1367,7 +1368,8 @@ def merge_caller(ini_file_name, job_control):
     output_nside = int(config["merge"].get("output_nside"))
     input_file_spec = config["project"].get("directory") + config["project"].get("project_name") + ".*.glimpse.out.fits"
     output_file_root = config["project"].get("directory") + config["project"].get("project_name")
-    # Info needed to parse the output glimpse file names...
+    
+    # Info needed to parse the output glimpse file names
     cutouts_nside = int(config["create_cutouts"].get("nside"))
     
     # Info needed for masking
@@ -1377,7 +1379,6 @@ def merge_caller(ini_file_name, job_control):
     dec_name = config["create_cutouts"].get("dec_name", "DEC")
 
     
-
     merge(input_file_spec, outer_border, inner_border, output_file_root, intermediate_nside, output_nside, cutouts_nside, apply_galaxy_mask, input_catalogue, ra_name, dec_name, job_control)
 
 
@@ -1417,6 +1418,7 @@ if __name__ == '__main__':
     #show_glimpse_output_as_image()
     #compare_two_cutouts()
     #joint_filter_example()
-    array_slice_from_job_control_string_test_harness()
+    #array_slice_from_job_control_string_test_harness()
+    pass
     
     
