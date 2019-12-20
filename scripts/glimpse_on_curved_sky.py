@@ -22,7 +22,7 @@ def run(ini_filename, task, job_control):
     if task == tasks[0]:
         utility.create_cutouts_caller(ini_filename, job_control)
     elif task == tasks[1]:
-        utility.run_glimpse(ini_filename)
+        utility.glimpse_caller(ini_filename, job_control)
     elif task == tasks[2]:
         utility.merge_caller(ini_filename, job_control)
     
@@ -38,11 +38,11 @@ if __name__ == '__main__':
     try:
 
         
-        parser = argparse.ArgumentParser(description = "Given a weak-lensing catalogue, creates a set of 'cutout' catalogues given one input weak-lensing catalogue.")
+        parser = argparse.ArgumentParser(description = "Creates a set of 'cutout' catalogues given one input weak-lensing catalogue.")
 
         parser.add_argument('-i', '--ini_file', type = str, required = True, help = "Input ini file name.")
         parser.add_argument('-t', '--task', type = str, required = True, help = "Task to be performed; one of create_cutouts, run_glimpse or merge.")
-        parser.add_argument('-j', '--job_control', type = str, required = False, default = "", help = "Numpy slice for which healpixels to process e.g. 2:10:2; default is empty string i.e. all. Enclose in double quotes.")
+        parser.add_argument('-j', '--job_control', type = str, required = False, default = "", help = "Numpy slice for which healpixels to process e.g. 2:10:2; default is empty string i.e. all. Enclose in double quotes But for run_glimpse this should just be the job number.")
         
         args = parser.parse_args()
         

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-def main(ini_file_name, job_id):
+def glimpse_caller(ini_file_name, job_id):
 
     import glob
     import subprocess
