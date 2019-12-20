@@ -11,21 +11,9 @@ def compare_two_cutouts():
     (ra_1, dec_1, e1_1, e2_1) = get_from_fits_file("/share/splinter/ucapwhi/glimpse_project/output/Mcal_0.2_1.3.2218.glimpse.cat.fits", ["RA", "DEC", "E1", "E2"])
     (ra_2, dec_2, e1_2, e2_2) = get_from_fits_file("/share/splinter/ucapwhi/glimpse_project/output_Mcal_badsign/Mcal_0.2_1.3.2218.glimpse.cat.fits", ["RA", "DEC", "E1", "E2"])
     
-    #plt.scatter(e1_1[:3000], e1_2[:3000], s=1)
-    #plt.show()
-    print(e1_1[:5])
-    print(e1_2[:5])
-    #plt.plot(ra_1)
-    #plt.plot(ra_2)
-    #plt.show()
-    #i = 0
-    #while True:
-    #    if (abs(ra_1[i] - ra_2[i]) > 1e-10):
-    #        print(i)
-    #        return
-    #    i += 1
-    
-    
+    for i in range(3159, 3170):
+        print(i, ra_1[i], ra_2[i], dec_1[i], dec_2[i])
+        
 
 
 
@@ -990,64 +978,108 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
     num_healpixels = hp.nside2npix(nside)
     num_digits = 1 + int(math.log10(num_healpixels))
     
-    x = np.cos(np.radians(dec)) * np.cos(np.radians(ra))
-    y = np.cos(np.radians(dec)) * np.sin(np.radians(ra))
-    z = np.sin(np.radians(dec))
-        
-    print('Creating output files...')
+    ra_rad = np.radians(ra)
+    dec_rad = np.radians(dec)
+    
+    sin_ra = np.sin(ra_rad)
+    cos_ra = np.cos(ra_rad)
+    sin_dec = np.sin(dec_rad)
+    cos_dec = np.cos(dec_rad)
+    
+    x = cos_dec * cos_ra
+    y = cos_dec * sin_ra
+    z = sin_dec
+    
+    # Create dictionary to hold information (for certain healpixel_ids only) about
+    # the minimum angular separation between the catalogue points and the healpixels centre.
+    # Key is heaslpixel_id; value is a triple (ra_centre, dec_centre, minimum_separation (in degrees)).
+    exclusion_dict = dict()
+    
+    # If catalogue points are further than critical_angular_separation away from a healpixel centre, then 
+    # they will certainly get excluded from this cutout.
+    # See p. GL 127. The prefactor allows for a safety margin and handles some 'tangent plane to sphere' distortion...
+    
+    critical_angular_separation = 1.1 * (cutout_side_in_degrees * np.sqrt(2.0) / 2.0)
 
-    for healpix_id in range(num_healpixels)[ids_to_process_slice]:
+    for healpix_id in range(num_healpixels)[slice_from_string(ids_to_process_slice)]:
 
         print("Processing {} of {}".format(healpix_id, num_healpixels))
         
         if healpix_id < 0 or healpix_id >= num_healpixels:
-            print("Do nothing as healpix_id {} is not in range [0, {})".format(healpix_id, num_healpixels))
+            print("Excluding healpix_id {} as it is not in range [0, {})".format(healpix_id, num_healpixels))
         else:
         
             (ra_centre, dec_centre) = hp.pix2ang(nside, healpix_id, nest=False, lonlat=True)
             
+            # See if we can immediately exclude this pixel based on previous results.
+            can_exclude_immediately = False
+            for id_prev in exclusion_dict:
+                (ra_centre_prev, dec_centre_prev, ang_sep_prev) = exclusion_dict[id_prev]
+                # See picture p. GL 147
+                separation_between_centres = np.degrees(angular_separation(ra_centre_prev, dec_centre_prev, ra_centre, dec_centre))
+                if separation_between_centres < ang_sep_prev - critical_angular_separation:
+                    can_exclude_immediately = True
+                    print("\tExcluding healpix_id {} as it is close ({} deg) to pixel {} already excluded (distance from catalogue {} deg)".format(healpix_id, separation_between_centres, id_prev, ang_sep_prev))
             
-            # Put the data in standard position relative to this centre point
-            (ra_standardised, dec_standardised) = to_standard_position_fast(x, y, z, ra_centre, dec_centre)
+            if not can_exclude_immediately:
             
-            # Which data lie in the standard cutout?
-            filter = is_in_standard_cutout(ra_standardised, dec_standardised, cutout_side_in_degrees)
-            
-            if filter[0].size > 0:
-                # Some galaxies to write
-                output_filename = (output_directory + "/" + output_file_root).format(str(healpix_id).zfill(num_digits))
                 
-                field_names = []
-                data_columns = []
-                
-                field_names.append(raname)
-                data_columns.append(ra_standardised[filter])
-                            
-                field_names.append(decname)
-                data_columns.append(dec_standardised[filter])
-                
-                
-                if shear_names:
-                    parsed_shear_names = shear_names.split(",")
-                    for (shear_name_1, shear_name_2) in zip(parsed_shear_names[0::2], parsed_shear_names[1::2]):
-                        (shear1, shear2) = rotate_shear_45_degrees(data[shear_name_1], data[shear_name_2])
+                ang_sep_data_to_centre = np.degrees(angular_separation_fast(sin_ra, cos_ra, sin_dec, cos_dec, ra_centre, dec_centre))
+                min_ang_sep_data_to_centre = np.min(ang_sep_data_to_centre)
+                if min_ang_sep_data_to_centre > critical_angular_separation:
+                    # Now we can exclude because we see that no points in the catalogue are sufficiently
+                    # close to the centre of healpix_id.
+                    exclusion_dict[healpix_id] = (ra_centre, dec_centre, min_ang_sep_data_to_centre)
+                    print("\tExcluding healpix_id {} as its distance from the catalogue is {} deg".format(healpix_id, np.min(min_ang_sep_data_to_centre)))
+                else:
+                    # Which data lie in a small disc centred on this healpixel?
+                    filter1 = np.where(ang_sep_data_to_centre <= critical_angular_separation)
+                    
+                    # Put these data in standard position
+                    (ra_standardised_filter1, dec_standardised_filter1) = to_standard_position_fast(x[filter1], y[filter1], z[filter1], ra_centre, dec_centre)
+                    
+                    # Now which of the (filtered) data lie in the standard cutout?
+                    filter2 = is_in_standard_cutout(ra_standardised_filter1, dec_standardised_filter1, cutout_side_in_degrees)
+                    
+                    # Put the two filters together to get a filter on the original data set. See p. GL148 for joint filtering.
+                    joint_filter = (filter1[0])[filter2]
+                    
+                    if joint_filter.size == 0:
+                        print("\tExcluding healpix_id {} as it has no galaxies in the cutout area".format(healpix_id))
+                    else:
+                        # Some galaxies to write
+                        output_filename = (output_directory + "/" + output_file_root).format(str(healpix_id).zfill(num_digits))
                         
-                        field_names.append(shear_name_1)
-                        data_columns.append(shear1[filter])
+                        field_names = []
+                        data_columns = []
                         
-                        field_names.append(shear_name_2)
-                        data_columns.append(shear2[filter])
-                
-                for f in other_field_names.split(","):
-                    field_names.append(f)
-                    data_columns.append(data[f][filter])
-                   
-                write_to_fits_file(output_filename, field_names, data_columns)
-       
+                        field_names.append(raname)
+                        data_columns.append(ra_standardised_filter1[filter2])
+                                    
+                        field_names.append(decname)
+                        data_columns.append(dec_standardised_filter1[filter2])
+                        
+                        
+                        if shear_names:
+                            parsed_shear_names = shear_names.split(",")
+                            for (shear_name_1, shear_name_2) in zip(parsed_shear_names[0::2], parsed_shear_names[1::2]):
+                                (shear1, shear2) = rotate_shear_45_degrees(data[shear_name_1], data[shear_name_2])
+                                
+                                field_names.append(shear_name_1)
+                                data_columns.append(shear1[joint_filter])
+                                
+                                field_names.append(shear_name_2)
+                                data_columns.append(shear2[joint_filter])
+                        
+                        for f in other_field_names.split(","):
+                            field_names.append(f)
+                            data_columns.append(data[f][joint_filter])
+                           
+                        write_to_fits_file(output_filename, field_names, data_columns)
 
 
 
-def create_cutouts_caller(ini_file_name):
+def create_cutouts_caller(ini_file_name, ids_to_process_slice):
 
     import configparser
     
@@ -1062,11 +1094,10 @@ def create_cutouts_caller(ini_file_name):
     other_field_names = config["create_cutouts"].get("other_field_names")
     nside = int(config["create_cutouts"].get("nside", "16"))
     cutout_side_in_degrees = float(config["create_cutouts"].get("cutout_side_in_degrees", "16"))
-    ids_to_process_slice = config["create_cutouts"].get("ids_to_process_slice", "[:]")
     output_directory = config["project"].get("directory")
     output_file_root = config["project"].get("project_name") + ".{}.glimpse.cat.fits"
     
-    create_cutouts(input_catalogue, catformat, ra_name, dec_name, shear_names, other_field_names, nside, cutout_side_in_degrees, ids_to_process_start, ids_to_process_end, output_directory, output_file_root)
+    create_cutouts(input_catalogue, catformat, ra_name, dec_name, shear_names, other_field_names, nside, cutout_side_in_degrees, ids_to_process_slice, output_directory, output_file_root)
 
 
     
@@ -1172,8 +1203,18 @@ def solver():
     
 ##################################### End of solver code #####################################    
 
+# See p. GL148
+def joint_filter_example():
 
-
+    import numpy as np
+    
+    data = np.array(range(8)) + 3.0
+    filter1 = np.where(data > 6.0)
+    filter2 = np.where(data[filter1] < 5.0)
+    joint_filter = (filter1[0])[filter2]
+    if joint_filter.size > 0:
+        print(joint_filter)
+        print(data[joint_filter])
     
     
 
@@ -1206,4 +1247,5 @@ if __name__ == '__main__':
     #kappa_histogram()
     #show_glimpse_output_as_image()
     compare_two_cutouts()
+    #joint_filter_example()
     

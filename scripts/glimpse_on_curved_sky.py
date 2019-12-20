@@ -4,7 +4,7 @@
 
     
 
-def run(ini_filename, task):
+def run(ini_filename, task, job_control):
 
     from pathlib import Path
     import utility
@@ -16,7 +16,7 @@ def run(ini_filename, task):
     assert (task in tasks), "task should be one of create_cutouts, run_glimpse or merge"
     
     if task == tasks[0]:
-        utility.create_cutouts_caller(ini_filename)
+        utility.create_cutouts_caller(ini_filename, job_control)
     elif task == tasks[1]:
         utility.run_glimpse(ini_filename)
     elif task == tasks[2]:
@@ -37,10 +37,11 @@ if __name__ == '__main__':
 
         parser.add_argument('-i', '--ini_file', type = str, required = True, help = "Input ini file name.")
         parser.add_argument('-t', '--task', type = str, required = True, help = "Task to be performed; one of create_cutouts, run_glimpse or merge.")
+        parser.add_argument('-j', '--job_control', type = str, required = False, default = "::", help = "Numpy slice for which healpixels to process e.g. 2:10:2; default is :: i.e. all. Enclose in double quotes.")
         
         args = parser.parse_args()
         
-        run(args.ini_file, args.task)
+        run(args.ini_file, args.task, args.job_control)
         
     except Exception as err:
         print('Error: {0}'.format(str(err)))
