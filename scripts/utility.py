@@ -4,6 +4,21 @@
 ########################## Start of one-off utilities ##########################
 
 
+# See p. GL148
+def joint_filter_example():
+
+    import numpy as np
+    
+    data = np.array(range(8)) + 3.0
+    filter1 = np.where(data > 6.0)
+    filter2 = np.where(data[filter1] < 5.0)
+    joint_filter = (filter1[0])[filter2]
+    if joint_filter.size > 0:
+        print(joint_filter)
+        print(data[joint_filter])
+    
+
+
 def compare_two_cutouts():
 
     import matplotlib.pyplot as plt
@@ -42,10 +57,10 @@ def glimpse_sign_experiment():
     import matplotlib.pyplot as plt
 
     glimpse_output_file = "/share/splinter/ucapwhi/glimpse_project/shear_sign_experiment/output.fits"
-    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
+    (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_file)
     
     glimpse_output_file_negative = "/share/splinter/ucapwhi/glimpse_project/shear_sign_experiment/output.negative.fits"
-    (ra_negative, dec_negative, kappa_negative) = get_from_glimpse(glimpse_output_file_negative)
+    (ra_negative, dec_negative, kappa_negative) = get_glimpse_output_data(glimpse_output_file_negative)
     
     plt.scatter(kappa, kappa_negative, s=1)
     plt.show()
@@ -103,7 +118,7 @@ def show_glimpse_output_as_image():
     import matplotlib.pyplot as plt
 
     glimpse_output_file = "/share/splinter/ucapwhi/glimpse_project/shear_sign_experiment/output.negative.fits"
-    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
+    (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_file)
     
     n = int(math.sqrt(kappa.shape[0]))
     
@@ -188,8 +203,7 @@ def save_buzzard_truth():
     
     # Save
     filename = "/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.nside" + str(nside) + "_truth.dat"
-    
-    hp.write_map(filename, average_values, do_nest, overwrite=True)
+    write_healpix_array_to_file(average_values, filename, do_nest)
     
 
 # One-time test; see p GL97.
@@ -199,7 +213,7 @@ def glimpse_array_order():
     import matplotlib.pyplot as plt
     
     glimpse_output_file = "/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.1440.glimpse.out.fits"
-    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
+    (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_file)
     
     plt.plot(ra[:1000], c='red')
     plt.plot(dec[:1000], c='blue')
@@ -218,15 +232,15 @@ def slice_from_string(slice_string):
 
 
 
-# Copied from view_glimpse, and amended
-def get_from_glimpse(glimpse_output_file):
-    import numpy as np
+# Returns the original shape, then the flattened ra, dec and values (in that order).
+def get_glimpse_output_data(glimpse_output_file):
     import astropy.io.fits as pyfits
-    ra = np.ndarray.flatten(pyfits.getdata(glimpse_output_file, ext=1))
-    dec = np.ndarray.flatten(pyfits.getdata(glimpse_output_file, ext=2))
-    kappa = np.ndarray.flatten(pyfits.getdata(glimpse_output_file, ext=0))
-    return (ra, dec, kappa)
-
+    pyfile = pyfits.open(glimpse_output_file)
+    ra = pyfile[1].data
+    dec = pyfile[2].data
+    kappa = pyfile[0].data
+    pyfile.close()
+    return (ra.reshape(-1), dec.reshape(-1), kappa.reshape(-1))
 
 
 
@@ -245,7 +259,7 @@ def kappa_values_in_one_fine_pixel():
     
     j = 0
     for f in sorted(glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.glimpse.out.fits")):
-        (ra, dec, kappa) = get_from_glimpse(f)
+        (ra, dec, kappa) = get_glimpse_output_data(f)
         range_k = np.arange(len(kappa))
         fine_healpix_id = hp.pixelfunc.ang2pix(1024, ra, dec, lonlat=True)
         filter = np.where(fine_healpix_id == specific_fine_healpix_id)
@@ -270,14 +284,11 @@ def metacal_data_file_name():
 # 'what_to_get' should be a list of field names (case insensitive)
 def get_from_fits_file(file_name, what_to_get):
     import astropy.io.fits as pyfits
-    print("Opening input file " + file_name + "...")
     res = []
     if what_to_get: # i.e. if list is not empty
         x = pyfits.open(file_name)
         for w in what_to_get:
-            print("Getting field {}".format(w))
             res.append(x[1].data.field(w))
-    print("Closing input file " + file_name + ".")
     return res
     
 
@@ -312,7 +323,7 @@ def glimpse_output_to_healpix_map(glimpse_output_file, nside, do_nest):
 
     import healpy as hp
     import numpy as np
-    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
+    (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_file)
     
     num_healpixels = hp.nside2npix(nside)
     weighted_values = np.zeros(num_healpixels)
@@ -327,7 +338,7 @@ def glimpse_lattice_points_to_healpix_map(glimpse_output_file, nside, do_nest):
 
     import healpy as hp
     import numpy as np
-    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
+    (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_file)
     
     num_healpixels = hp.nside2npix(nside)
     ret = np.zeros(num_healpixels)
@@ -604,6 +615,17 @@ def comparison_function(x, y, tolerance):
     r[np.where(np.abs(x-y)<=tolerance)] = 0.0
     return r
     
+def write_healpix_array_to_file(a, filename, nest):
+    import healpy as hp
+
+    if hp.__version__ == "1.10.3":
+        # Suppress deprecation warning message about clobber/overwrite
+        import warnings
+        from astropy.utils.exceptions import AstropyDeprecationWarning
+        warnings.simplefilter('ignore', AstropyDeprecationWarning)
+
+    # print("Writing {}".format(filename))
+    hp.write_map(filename, a, nest, overwrite=True)
     
     
 def plot_several_healpix_maps():
@@ -712,7 +734,8 @@ def downgrade_map():
     
     m = hp.read_map(path + f_in)
     m_new = hp.ud_grade(m, 1024)
-    hp.write_map(path + f_out, m_new, overwrite=True)
+    write_healpix_array_to_file(m_new, path + f_out, False)
+    
 
 
 
@@ -745,7 +768,7 @@ def clean_up_edges():
     # Apply the mask
     m *= mask
     
-    hp.write_map(path + new_filename, m, overwrite=True)
+    write_healpix_array_to_file(m, path + new_filename, False)
     
     # Also save as png
     hp.mollview(m, title=new_filename)
@@ -756,20 +779,14 @@ def clean_up_edges():
 
 def sphere_to_tangent_plane_mapping(ra_centre, dec_centre, ra, dec):
     import numpy as np
-    
-    # See my notes p. GL90
-    
+    # See LW's notes p. GL90
     ra_centre_rad = np.radians(ra_centre)
     dec_centre_rad = np.radians(dec_centre)
     ra_rad = np.radians(ra)
     dec_rad = np.radians(dec)
-    
     x = np.sin(ra_rad - ra_centre_rad) / (np.cos(dec_centre_rad) * np.cos(ra_rad - ra_centre_rad) + np.tan(dec_rad) * np.sin(dec_centre_rad))
-    
     epsilon = np.sin(dec_rad) * np.cos(dec_centre_rad) - np.cos(dec_rad) * np.sin(dec_centre_rad) * np.cos(ra_rad - ra_centre_rad)
-    
     y = epsilon * np.sqrt((1.0 + x**2) / (1.0 - epsilon**2))
-    
     return (x, y)
     
 
@@ -784,7 +801,7 @@ def sphere_to_tangent_plane_mapping_test_harness():
     dec_centre = -27.27961273597809
 
     glimpse_output_file = "/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192." + str(pixel_id) + ".glimpse.out.fits"
-    (ra, dec, kappa) = get_from_glimpse(glimpse_output_file)
+    (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_file)
     array_size = int(np.sqrt(len(ra)))
     
     
@@ -935,11 +952,11 @@ def angular_separation_fast_test_harness():
     print("=========")
     print(res2)
 
-
+######################### Start of create_cutouts code #########################
 
 
 # Will process ids in the range [ids_to_process_start, ids_to_process_end). Set ids_to_process_end to -1 to mean "to the end"
-def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, ids_to_process_slice, output_directory, output_file_root):
+def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, job_control, output_directory, output_file_root):
 
     from astropy.table import Table
     import healpy as hp
@@ -1001,7 +1018,7 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
     
     critical_angular_separation = 1.1 * (cutout_side_in_degrees * np.sqrt(2.0) / 2.0)
 
-    for healpix_id in range(num_healpixels)[slice_from_string(ids_to_process_slice)]:
+    for healpix_id in range(num_healpixels)[slice_from_string(job_control)]:
 
         print("Processing {} of {}".format(healpix_id, num_healpixels))
         
@@ -1079,7 +1096,7 @@ def create_cutouts(input_catalogue, catformat, raname, decname, shear_names, oth
 
 
 
-def create_cutouts_caller(ini_file_name, ids_to_process_slice):
+def create_cutouts_caller(ini_file_name, job_control):
 
     import configparser
     
@@ -1097,125 +1114,264 @@ def create_cutouts_caller(ini_file_name, ids_to_process_slice):
     output_directory = config["project"].get("directory")
     output_file_root = config["project"].get("project_name") + ".{}.glimpse.cat.fits"
     
-    create_cutouts(input_catalogue, catformat, ra_name, dec_name, shear_names, other_field_names, nside, cutout_side_in_degrees, ids_to_process_slice, output_directory, output_file_root)
+    create_cutouts(input_catalogue, catformat, ra_name, dec_name, shear_names, other_field_names, nside, cutout_side_in_degrees, job_control, output_directory, output_file_root)
 
 
-    
+######################### End of create_cutouts code #########################
 
-##################################### Start of solver code #####################################
-# See p. GL 136. Nice idea, didn't work (numerical solution had too much error...)  
 
-def objective_function(x, centre):
 
-    import math
+
+
+
+######################### Start of merge code #########################
+
+
+# Satisfies f(x0) = 1, f(x1) = 0, f'(x0) = 0, f'(x1) = 0
+def smoothed_step_function(x, x0, x1):
+    x_scaled = (float(x) - x0) / (x1 - x0)
+    return 2.0 * x_scaled**3 - 3.0 * x_scaled**2 + 1.0
+
+
+# Returns a 1D array of length 'width'. The first outer_border values are 0, and the next
+# inner_border-outer_border values are smoothly intermediate between 0 and 1. Then there
+# is a series of 1s. The output is symmetric about the midpoint.
+# See LW's notes p. GL105.
+def one_axis_weight_function(width, outer_border, inner_border):
     import numpy as np
+    assert (outer_border >= 0), "outer_border must be non-negative in one_axis_weight_function"
+    assert (outer_border <= inner_border), "outer_border must not exceed inner_border in one_axis_weight_function"
+    assert (width > 2 * inner_border), "inner_border is too large in one_axis_weight_function"
+    ret = np.zeros(width)
+    for i in range(width):
+        if i < outer_border:
+            pass # ret[i] = 0.0, but we don't need to do this as zero is the default value.
+        elif i < inner_border:
+            ret[i] = smoothed_step_function(i, inner_border, outer_border - 1)
+        elif i < width - inner_border:
+            ret[i] = 1.0
+        elif i < width - outer_border:
+            ret[i] = smoothed_step_function(i, width - inner_border - 1, width - outer_border)
+        else:
+            pass # ret[i] = 0.0, but we don't need to do this as zero is the default value.
+    return ret
     
-    a = x[0]
-    b = x[1]
-    c = x[2]
-    d = x[3]
+def one_axis_weight_function_test_harness():
+    oawf = one_axis_weight_function(16, 2, 5)
+    for x in oawf:
+        print(x)
+
+
+
+# Returns a 1D array - this is the flattened version of the 2D array that is the
+# geometric average of two one_axis_weight_functions, one on each of the two axes.
+# Input 'shape' should be the desired shape of the before-being-flattened 2D array.
+def two_axis_weight_function(shape, outer_border, inner_border):
+    import numpy as np
+    x = one_axis_weight_function(shape[0], outer_border, inner_border)
+    y = one_axis_weight_function(shape[1], outer_border, inner_border)
+    return np.sqrt(x[np.newaxis].T * y).reshape(-1)
+
+def two_axis_weight_function_test_harness():
+    import matplotlib.pyplot as plt
+    import numpy as np
+    d1 = 100
+    d2 = 35
+    outer_border = 7
+    inner_border = 14
+    a = two_axis_weight_function((d1, d2), outer_border, inner_border)
+    a = np.reshape(a, (d1, d2))
+    plt.imshow(a)
+    plt.show()
+
+   
     
-    cx = centre[0]
-    cy = centre[1]
-    cz = centre[2]
+
+def merge(input_file_spec, outer_border, inner_border, output_file_root, output_nside, cutouts_nside, job_control):
+    import math
+    import astropy.io.fits as pyfits
+    import healpy as hp
+    import numpy as np
+    import glob
+    import sys
+    import matplotlib.pyplot as plt
+    import utility
     
-    y0 = a**2 + b**2 + c**2 + d**2 - 1.0
+
+    RA = 0
+    DEC = 1
     
-    #y1 = (a**2 + b**2 - c**2 - d**2) * cx + 2.0 * (b * c - a* d) * cy + 2.0 * (b * d + a * c) * cz + 1.0
-    y1 = (a**2 + b**2 - c**2 - d**2) * cx + 2.0 * (b * c - a * d) * cy + 2.0 * (b * d + a * c) * cz - 1.0
+    # Currently hard-coded to output in RING format; can change this if desired.
+    output_nest = False
+    
+    output_debugging_info = False
+    g_index_special = 6318085 # Dump debugging info for this pixel
+    if output_debugging_info:
+        print("Debugging point: RA={}; DEC={}; index={}".format(hp.pix2ang(output_nside, g_index_special, output_nest, lonlat=True)[0], hp.pix2ang(output_nside, g_index_special, output_nest, lonlat=True)[1], g_index_special))
+    
+    assert (outer_border <= inner_border), "inner_border must not be larger than outer_border"
+
+    num_healpixels = hp.nside2npix(output_nside)
+
+    # "g_" means "global" i.e. for the whole sphere. Indices into these arrays must repect the 'output_nest' parameter.
+    g_weighted_values = np.zeros(num_healpixels)
+    g_weights = np.zeros(num_healpixels)
+    g_centres = hp.pix2ang(output_nside, np.arange(num_healpixels), output_nest, True)
+    
+    g_centres_ra_rad = np.radians(g_centres[RA])
+    g_centres_dec_rad = np.radians(g_centres[DEC])
+    g_sin_centres_ra = np.sin(g_centres_ra_rad)
+    g_cos_centres_ra = np.cos(g_centres_ra_rad)
+    g_sin_centres_dec = np.sin(g_centres_dec_rad)
+    g_cos_centres_dec = np.cos(g_centres_dec_rad)
+    
+    
+    list_of_input_files = glob.glob(input_file_spec)
+    list_of_input_files.sort()
+    list_of_input_files = list_of_input_files[slice_from_string(job_control)]
+    num_input_files = len(list_of_input_files)
+
+    assert (num_input_files > 0), "No input files found"
+    
+    is_first_file = True
+
+    for (filename, file_index) in zip(list_of_input_files, range(num_input_files)):
+
+        if not output_debugging_info:
+            print("Processing {} of {}: {}...".format(file_index+1, num_input_files, filename))
+            
+        # "p_" means "for this one picture"
+        (p_ra, p_dec, p_val) = get_glimpse_output_data(filename)
+        num_glimpse_pixels_on_side = int(np.sqrt(p_ra.shape[0]))
+        p_shape = (num_glimpse_pixels_on_side, num_glimpse_pixels_on_side)
+
         
-    y2 = 2.0 * (b * c + a * d) * cx + (a**2 + c**2 -b**2 -d**2) * cy + 2.0 * (c * d - a * b) * cz
+        if is_first_file:
+            # For speed these data can be cached
+            # (as they will be the same for all cutouts (as all cutouts are in standard position)).
+            p_ra_rad = np.radians(p_ra)
+            p_dec_rad = np.radians(p_dec)
+            p_cos_dec = np.cos(p_dec_rad)
+            p_x = p_cos_dec * np.cos(p_ra_rad)
+            p_y = p_cos_dec * np.sin(p_ra_rad)
+            p_z = np.sin(p_dec_rad)
+            is_first_file = False
+       
+        
+        # Here we are assuming the standard filename convention, so we can get
+        # the coarse healpixel id from a certain location in the file name.
+        # File name will be of the form (various}.XXXX.glimpse.out.fits
+        #where XXXX is a healpix id (nside = cutouts_nside)
+        assert (filename[-17:] == ".glimpse.out.fits"), "Filename {} was not of the expected format (should end with .glimpse.out.fits)".format(filename)
+        
+        index_of_coarse_healpix_id_in_file_name = -4
+        cutout_healpix_id = int(filename.split('.')[index_of_coarse_healpix_id_in_file_name])
+        (p_centre_ra, p_centre_dec) = hp.pix2ang(cutouts_nside, cutout_healpix_id, nest=False, lonlat=True)
+        
+        (p_ra, p_dec) = from_standard_position_fast(p_x, p_y, p_z, p_centre_ra, p_centre_dec)
+
+        if any(np.isnan(p_val)):
+            print("\t\tRejected as it contains NaNs")
+        else:
+            # The radius of the glimpse lattice (on the sphere).
+            radius_rad = angular_separation(p_centre_ra, p_centre_dec, p_ra[0], p_dec[0])
+
+            # The angular separation between each healpixel and the centre of the current picture.
+            #g_ang_sep_rad = angular_separation(g_centres[RA], g_centres[DEC], p_centre_ra, p_centre_dec)
+            g_ang_sep_rad = angular_separation_fast(g_sin_centres_ra, g_cos_centres_ra, g_sin_centres_dec, g_cos_centres_dec, p_centre_ra, p_centre_dec)
+            
+            
+            # Only include those healpixels that are sensibly close to the centre of the lattice.
+            # This is a speedup, and also prevents problems with the 'project sphere to tangent plane'
+            # routine (which would fail e.g. if the point on the sphere were on the wrong hemisphere).
+            g_include = np.where(g_ang_sep_rad <= radius_rad)
+            
+            g_centres_ra_filtered = g_centres[RA][g_include]
+            g_centres_dec_filtered = g_centres[DEC][g_include]
+            g_indices_filtered = np.arange(num_healpixels)[g_include]
+            
+            # Map the (relevant) healpixel centres to the tangent plane for this picture.
+            (g_x_filtered, g_y_filtered) = sphere_to_tangent_plane_mapping(p_centre_ra, p_centre_dec, g_centres_ra_filtered, g_centres_dec_filtered)
+            
+            # We know that the glimpse lattice points will map to a perfectly regular lattice on the tangent plane,
+            # so no need to actually do this computation. However, we do need to know the spacing of the glimpse lattice
+            # points in the tangent plane. So do a simple experiment to discover this.
+            glimpse_lattice_spacing = sphere_to_tangent_plane_mapping(p_centre_ra, p_centre_dec, p_ra[1], p_dec[1])[0] - sphere_to_tangent_plane_mapping(p_centre_ra, p_centre_dec, p_ra[0], p_dec[0])[0]
+            
+            if False:
+                (p_lattice_x, p_lattice_y) = sphere_to_tangent_plane_mapping(p_centre_ra, p_centre_dec, p_ra, p_dec)
+                plt.scatter(p_lattice_x, p_lattice_y)
+                plt.scatter(p_lattice_x[0], p_lattice_y[0], c="red", s=10)
+                plt.scatter(p_lattice_x[30], p_lattice_y[30], c="blue", s=10)
+                plt.show()
+            
+                        
+            # For each relevant healpixel, find the index of the nearest lattice point. See LW's notes p. GL94.
+            # Note that this function hard-codes specific information about how the points in the glimpse lattice
+            # are ordered in the glimpse output. If you wanted to remove the dependency on this information,
+            # could replace this code with a routine to 'find the closest glimpse lattice point'. This would be
+            # slower but would be more future-proof against possible changes in the glimpse layout.
+            
+            # Ha! These changes came sooner than you expected. See p. GL121
+            g_x_filtered_rotated = (g_x_filtered - g_y_filtered) * np.sqrt(2.0) / 2.0
+            g_y_filtered_rotated = (g_x_filtered + g_y_filtered) * np.sqrt(2.0) / 2.0
+            glimpse_lattice_spacing *= np.sqrt(2.0)
+            
+            g_index_into_glimpse_array = (bound_between(p_shape[0]//2 + np.floor(g_x_filtered_rotated / glimpse_lattice_spacing), 0, p_shape[0]-1) + \
+                p_shape[0] * bound_between(p_shape[1]//2 + np.floor(g_y_filtered_rotated / glimpse_lattice_spacing) - 1, 0, p_shape[1]-1)).astype(int)
+                
+            p_weight = two_axis_weight_function(p_shape, outer_border, inner_border)
+            
+            # See 'Assigning values to indexed arrays' at https://www.numpy.org/devdocs/user/basics.indexing.html
+            # to see why the naive approach to what follows fails:
+            for (p_index, g_index) in zip(g_index_into_glimpse_array, g_indices_filtered):
+                v = p_val[p_index]
+                w = p_weight[p_index]
+                
+                g_weighted_values[g_index] += (w * v)
+                g_weights[g_index] += w
+                
+                if output_debugging_info:
+                    if g_index == g_index_special:
+                        print(g_index, p_index, v, w, filename)
+       
+
+    # The following division code treats 0/0 as 0. From https://stackoverflow.com/questions/26248654.
+    g_average_values = np.divide(g_weighted_values, g_weights, out=np.zeros_like(g_weights, dtype=float), where=g_weights!=0.0)
     
-    #y3 = 2.0 * (b * c + a * d) * cy - (a**2 + c**2 -b**2 -d**2) * cx - math.sqrt(2.0) / 2.0
-    #y3 = 2.0 * (b * c + a * d) * cy - (a**2 + c**2 -b**2 -d**2) * cx - 1.0
-    y3 = d
-    
-    y = np.array([y0, y1, y2, y3])
-    
-    print(x, " |-->  ", y)
-    
-    return y
+    if output_debugging_info:
+        print("g_weighted_values[{}]={}".format(g_index_special, g_weighted_values[g_index_special]))
+        print("g_weights[{}]={}".format(g_index_special, g_weights[g_index_special]))
+        print("g_average_values[{}]={}".format(g_index_special, g_average_values[g_index_special]))
+   
+    for (filename_part, array) in zip(["_values", "_weights"], [g_average_values, g_weights]):
+        dat_filename = output_file_root + filename_part + ".dat"
+        # Save data to healpix format file
+        write_healpix_array_to_file(array, dat_filename, output_nest)
 
 
 
-def objective_function_foo(x, centre):
+def merge_caller(ini_file_name, job_control):
+    import configparser
+    
+    config = configparser.ConfigParser()
+    config.read(ini_file_name)
+    
+    outer_border = int(config["merge"].get("outer_border"))
+    inner_border = int(config["merge"].get("inner_border"))
+    output_nside = int(config["merge"].get("output_nside"))
+    input_file_spec = config["project"].get("directory") + config["project"].get("project_name") + ".*.glimpse.out.fits"
+    output_file_root = config["project"].get("directory") + config["project"].get("project_name")
+    cutouts_nside = int(config["create_cutouts"].get("nside"))
 
-    import math
-    import numpy as np
-    
-    a = x[0]
-    b = x[1]
-    c = x[2]
-    d = x[3]
-    
-    
-    y0 = a**2 + b**2 + c**2 + d**2 - 1.0
-    y1 = (a**2 + b**2 - c**2 - d**2) + 1.0
-    y2 = 2.0 * (b * d + a * c)
-    y3 = a**2 - b**2 - c**2 + d**2 - 1.0
-    
-    y = np.array([y0, y1, y2, y3])
-    
-    Jac = 2.0 * np.array([[a, a, -c, a], [b, b, d, -b], [c, -c, -a, -c], [d, -d, b, d]])
-    
-    
-    print(x, " |-->  ", y)
-    
-    return (y, Jac)
-    #return y
+    merge(input_file_spec, outer_border, inner_border, output_file_root, output_nside, cutouts_nside, job_control)
 
 
 
-def solver():
-    
-    import scipy.optimize as so
-    import numpy as np
-    
-    print("========================================================================================")
+
+######################### End of merge code #########################
 
 
-    cx = 0.999
-    cy = np.sqrt(1.0 - cx**2)
-    cz = 0.0
-    
-    first_guess = np.array([1.0, 0.0, 0.0, 0.0])
-    centre = np.array([cx, cy, cz])
-    print(centre)
-    
-    options = dict()
-    options["xtol"] = 1e-8
-    
-    
-    sol = so.root(objective_function_foo, first_guess, centre, "hybr", True, options=options)
-    print("===========")
-    print("===========")
-    print("===========")
-    print(sol.x)
-    print(sol.message)
-    
-    a = sol.x[0]
-    b = sol.x[1]
-    c = sol.x[2]
-    d = sol.x[3]
-    
-    A = np.array([[a**2+b**2-c**2-d**2, 2.0*(b*c-a*d), 2.0*(b*d+a*c)], [2.0*(b*c+a*d), a**2-b**2+c**2-d**2, 2.0*(c*d-a*b)], [2.0*(b*d-a*c), 2.0*(c*d+a*b), a**2-b**2-c**2+d**2]])
-    print(A)
-    
-##################################### End of solver code #####################################    
-
-# See p. GL148
-def joint_filter_example():
-
-    import numpy as np
-    
-    data = np.array(range(8)) + 3.0
-    filter1 = np.where(data > 6.0)
-    filter2 = np.where(data[filter1] < 5.0)
-    joint_filter = (filter1[0])[filter2]
-    if joint_filter.size > 0:
-        print(joint_filter)
-        print(data[joint_filter])
-    
     
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ def run(ini_filename, task, job_control):
     elif task == tasks[1]:
         utility.run_glimpse(ini_filename)
     elif task == tasks[2]:
-        utility.merge(ini_filename)
+        utility.merge_caller(ini_filename, job_control)
     
     
 
@@ -29,6 +29,7 @@ if __name__ == '__main__':
 
     import argparse
     import sys
+    import traceback
     
     try:
 
@@ -44,6 +45,6 @@ if __name__ == '__main__':
         run(args.ini_file, args.task, args.job_control)
         
     except Exception as err:
-        print('Error: {0}'.format(str(err)))
+        print(traceback.format_exc())
         sys.exit(1)
         
