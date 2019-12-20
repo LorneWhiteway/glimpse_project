@@ -1030,6 +1030,7 @@ def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_na
                 if separation_between_centres < ang_sep_prev - critical_angular_separation:
                     can_exclude_immediately = True
                     print("\tExcluding healpix_id {} as it is close ({} deg) to pixel {} already excluded (distance from catalogue {} deg)".format(healpix_id, separation_between_centres, id_prev, ang_sep_prev))
+                    break
             
             if not can_exclude_immediately:
             
