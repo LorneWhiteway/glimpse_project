@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """ 
-    Core file for for 'glimpse on curved sky' project.
+    Core file for 'glimpse on curved sky' project.
     Author: Lorne Whiteway.
 """
 
@@ -229,7 +229,7 @@ def glimpse_array_order():
 
     
 # job_control will be a string such as "" or ":-1" or "2:17:3"
-# Assumes a is one-dimensional
+# Assumes 'a' is one-dimensional
 # I tried https://stackoverflow.com/questions/48494581 but it doesn't handle omitted arguments.
 def array_slice_from_job_control_string(a, job_control):
     tokens = job_control.split(':')
@@ -656,18 +656,17 @@ def plot_several_healpix_maps():
     import healpy as hp
     import numpy as np
     import matplotlib.pyplot as plt
-    import skymapper
     
     nside = 1024
 
     maps = []
     titles = []
 
-    # 1. maps from files
-    path = "/share/splinter/ucapwhi/glimpse_project/output/"
+    # 1. maps from healpix files
+    path = "/share/splinter/ucapwhi/glimpse_project/output_Mcal_signal/"
     #filenames = ["Buzzard_192.90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat", "Buzzard_192.90_110_2048_downgraded_to_1024.glimpse.merged.values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
     #filenames = ["patch_1242_90_110_2048_values.dat"]
-    filenames = ["Mcal_0.2_1.3_90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat"]
+    filenames = ["Mcal_0.2_1.3.signal.glimpse.merged.values.dat"]
         
     
     weight_maps = []
@@ -733,7 +732,7 @@ def plot_several_healpix_maps():
     for map, title, i in zip(maps, titles, range(len(maps))):
         if False:
             hp.mollview(map, fig=i, title=title)
-        elif False:
+        elif True:
             #rot = (326.25, 12.024699, 0.0)
             #rot = (180.0, 0.0, 0.0)
             rot = (75.0, -55.0, 0.0)
@@ -1430,7 +1429,7 @@ if __name__ == '__main__':
     #sphere_to_tangent_plane_mapping_test_harness()
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
-    #plot_several_healpix_maps()
+    plot_several_healpix_maps()
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()

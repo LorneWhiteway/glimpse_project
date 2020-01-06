@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-######### START OF SECTION COPIED FROM https://raw.githubusercontent.com/NiallJeffrey/DeepMass/master/deepmass/lens_data.py #########
+######### START OF SECTION COPIED FROM https://raw.githubusercontent.com/NiallJeffrey/DeepMass/master/deepmass/lens_data.py AND THEN EDITED #########
 def ks_fourier_matrix(size):
     """
 
@@ -24,26 +24,23 @@ def ks_fourier_matrix(size):
     return np.where(k_squared != 0.0, A_ft_diagonal, 1.0)
 
 
-
-def ks(shear_map, fourier_forward_matrix=None):
+def ks(shear_map):
     """
     Kaiser squires 1993
     :param shear_map: complex square shear map (e1 + i e2)
-    :param fourier_forward_matrix: if matrix precalculated use it for speed
     :return: kappa map
     """
     
     import numpy as np
-
-    if fourier_forward_matrix is None:
-        fourier_forward_matrix = ks_fourier_matrix(shear_map.shape[0])
-
+    
+    # Note that fourier_forward_matrix is independent of the contents of shear_map and hence can
+    # be pre-calculated and reused if necessary.
+    fourier_forward_matrix = ks_fourier_matrix(shear_map.shape[0])
     fourier_shear_vector = np.fft.fft2(shear_map).flatten()
-
     return np.fft.ifft2(np.reshape(fourier_shear_vector/fourier_forward_matrix,shear_map.shape))
 
 
-######### END OF SECTION COPIED FROM https://raw.githubusercontent.com/NiallJeffrey/DeepMass/master/deepmass/lens_data.py #########
+######### END OF SECTION COPIED FROM https://raw.githubusercontent.com/NiallJeffrey/DeepMass/master/deepmass/lens_data.py AND THEN EDITED #########
 
 def ks_test_harness():
     import numpy as np
