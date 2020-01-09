@@ -223,6 +223,39 @@ def glimpse_array_order():
     plt.plot(ra[:1000], c='red')
     plt.plot(dec[:1000], c='blue')
     plt.show()
+    
+    
+def create_test_catalogue():
+
+    import numpy as np
+
+    main_catalogue_filename = "/share/testde/ucapnje/year3_des/Mcal_0.2_1.3.fits"
+    list_of_field_names = ["RA", "DEC", "E1", "E2", "DUMMY_Z"]
+    (ra, dec, e1, e2, z) = get_from_fits_file(main_catalogue_filename, list_of_field_names)
+    
+    a = angular_separation(ra, dec, 50.0, -30.0)
+    r = np.random.uniform(size=ra.shape[0])
+    filter = np.where(np.logical_and(a < 0.01, r > 0.8))
+    ra = ra[filter]
+    dec = dec[filter]
+    e1 = e1[filter]
+    e2 = e2[filter]
+    z = z[filter]
+    list_of_data_columns = [ra, dec, e1, e2, z]
+    test_catalogue_filename = "/share/splinter/ucapwhi/glimpse_project/test/catalogue.fits"
+    write_to_fits_file(test_catalogue_filename, list_of_field_names, list_of_data_columns)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
 ########################## End of one-off utilities ##########################
 
@@ -957,6 +990,7 @@ def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_na
     import math
     import astropy.io.fits as pyfits
     import sys
+    import os
     
     
     
@@ -1058,7 +1092,7 @@ def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_na
                         print("\tExcluding healpix_id {} as it has no galaxies in the cutout area".format(healpix_id))
                     else:
                         # Some galaxies to write
-                        output_filename = (output_directory + "/" + output_file_root).format(str(healpix_id).zfill(num_digits))
+                        output_filename = os.path.join(output_directory, output_file_root).format(str(healpix_id).zfill(num_digits))
                         
                         field_names = []
                         data_columns = []
@@ -1092,6 +1126,7 @@ def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_na
 def create_cutouts_caller(ini_file_name, job_control):
 
     import configparser
+    import os
     
     config = configparser.ConfigParser()
     config.read(ini_file_name)
@@ -1103,8 +1138,9 @@ def create_cutouts_caller(ini_file_name, job_control):
     other_field_names = config["create_cutouts"].get("other_field_names")
     nside = int(config["create_cutouts"].get("nside", "16"))
     cutout_side_in_degrees = float(config["create_cutouts"].get("cutout_side_in_degrees", "16"))
-    output_directory = config["project"].get("directory")
-    output_file_root = config["project"].get("project_name") + ".{}.glimpse.cat.fits"
+    
+    output_directory = os.path.dirname(os.path.abspath(ini_file_name))
+    output_file_root = "{}.glimpse.cat.fits"
     
     create_cutouts(input_catalogue, ra_name, dec_name, shear_names, other_field_names, nside, cutout_side_in_degrees, job_control, output_directory, output_file_root)
 
@@ -1118,16 +1154,16 @@ def glimpse_caller(ini_file_name, job_id):
     import glob
     import subprocess
     import configparser
+    import os
     
     config = configparser.ConfigParser()
     config.read(ini_file_name)
     
-    output_directory = config["project"].get("directory")
-    project = config["project"].get("project_name")
+    output_directory = os.path.dirname(os.path.abspath(ini_file_name))
     exe_file = config["project"].get("glimpse_executable")
     
-    glimpse_cat_file_pattern = output_directory + project + ".*.glimpse.cat.fits"
-    id_list = [int(f.split(".")[-4]) for f in glob.glob(glimpse_cat_file_pattern)]
+    glimpse_cat_file_pattern = os.path.join(output_directory, "*.glimpse.cat.fits")
+    id_list = [int((os.path.basename(f)).split(".")[0]) for f in glob.glob(glimpse_cat_file_pattern)]
     id_list.sort()
     this_healpix_pixel_id = id_list[int(job_id)]
     
@@ -1135,9 +1171,9 @@ def glimpse_caller(ini_file_name, job_id):
     
     this_healpix_id_as_string = str(this_healpix_pixel_id).zfill(4)
     
-    ini_file = output_directory + project  + ".glimpse.ini"
-    cat_file = output_directory + project + "." + this_healpix_id_as_string + ".glimpse.cat.fits"
-    out_file = output_directory + project + "." + this_healpix_id_as_string + ".glimpse.out.fits"
+    ini_file = os.path.join(output_directory, "glimpse.ini")
+    cat_file = os.path.join(output_directory, this_healpix_id_as_string + ".glimpse.cat.fits")
+    out_file = os.path.join(output_directory, this_healpix_id_as_string + ".glimpse.out.fits")
 
     subprocess.run([exe_file, ini_file, cat_file, out_file])
 
@@ -1218,6 +1254,7 @@ def merge(input_file_spec, outer_border, inner_border, output_file_root, interme
     import sys
     import matplotlib.pyplot as plt
     import utility
+    import os
     
 
     RA = 0
@@ -1283,12 +1320,10 @@ def merge(input_file_spec, outer_border, inner_border, output_file_root, interme
         
         # Here we are assuming the standard filename convention, so we can get
         # the coarse healpixel id from a certain location in the file name.
-        # File name will be of the form (various}.XXXX.glimpse.out.fits
+        # File name will be of the form (various}/XXXX.glimpse.out.fits
         #where XXXX is a healpix id (nside = cutouts_nside)
         assert (filename[-17:] == ".glimpse.out.fits"), "Filename {} was not of the expected format (should end with .glimpse.out.fits)".format(filename)
-        
-        index_of_coarse_healpix_id_in_file_name = -4
-        cutout_healpix_id = int(filename.split('.')[index_of_coarse_healpix_id_in_file_name])
+        cutout_healpix_id = int(os.path.basename(filename).split('.')[0])
         (p_centre_ra, p_centre_dec) = hp.pix2ang(cutouts_nside, cutout_healpix_id, nest=False, lonlat=True)
         
         (p_ra, p_dec) = from_standard_position_fast(p_x, p_y, p_z, p_centre_ra, p_centre_dec)
@@ -1379,7 +1414,7 @@ def merge(input_file_spec, outer_border, inner_border, output_file_root, interme
         
     # Save data to healpix format file
     for (filename_part, array) in zip(["values", "weights"], [g_average_values, g_weights]):
-        dat_filename = output_file_root + ".glimpse.merged." + filename_part + ".dat"
+        dat_filename = output_file_root + "glimpse.merged." + filename_part + ".dat"
         print("Writing {}...".format(dat_filename))
         write_healpix_array_to_file(array, dat_filename, output_nest)
 
@@ -1388,6 +1423,7 @@ def merge(input_file_spec, outer_border, inner_border, output_file_root, interme
 def merge_caller(ini_file_name, job_control):
     
     import configparser
+    import os
     
     config = configparser.ConfigParser()
     config.read(ini_file_name)
@@ -1396,8 +1432,10 @@ def merge_caller(ini_file_name, job_control):
     inner_border = int(config["merge"].get("inner_border"))
     intermediate_nside = int(config["merge"].get("intermediate_nside"))
     output_nside = int(config["merge"].get("output_nside"))
-    input_file_spec = config["project"].get("directory") + config["project"].get("project_name") + ".*.glimpse.out.fits"
-    output_file_root = config["project"].get("directory") + config["project"].get("project_name")
+    
+    directory = os.path.dirname(os.path.abspath(ini_file_name))
+    input_file_spec = os.path.join(directory, "*.glimpse.out.fits")
+    output_file_root = os.path.join(directory, "")
     
     # Info needed to parse the output glimpse file names
     cutouts_nside = int(config["create_cutouts"].get("nside"))
@@ -1429,7 +1467,8 @@ if __name__ == '__main__':
     #sphere_to_tangent_plane_mapping_test_harness()
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
-    plot_several_healpix_maps()
+    #plot_several_healpix_maps()
+    create_test_catalogue()
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()
