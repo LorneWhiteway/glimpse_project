@@ -9,6 +9,25 @@
 ########################## Start of one-off utilities ##########################
 
 
+
+
+# This function written by Macro Gatti. See Slack message on 22 December 2019.
+def apply_random_rotation(e1_in, e2_in):
+    import numpy as np
+    np.random.seed() # CRITICAL in multiple processes !
+    rot_angle = np.random.rand(len(e1_in)) * 2.0 * np.pi #no need for 2?
+    cos = np.cos(rot_angle)
+    sin = np.sin(rot_angle)
+    e1_out = + e1_in * cos + e2_in * sin
+    e2_out = - e1_in * sin + e2_in * cos
+    return e1_out, e2_out
+    
+
+
+
+
+
+
 # See p. GL148
 def joint_filter_example():
 
