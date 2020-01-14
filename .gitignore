@@ -1,3 +1,8 @@
-nicaea/
 Glimpse/
-Sparse2D/
+test/*.out.fits
+test/*.cat.fits
+test/*.out
+scripts/__pycache__/
+old/
+logs/
+
