@@ -2,12 +2,14 @@
 
 ## Introduction
 
-This repository contains scripts to allow [glimpse](https://github.com/CosmoStat/Glimpse) (a mass-mapping algorithm that works on patches of the sky that are assumed to be small and flat) to be run on a larger patch (such as the DES footprint).
+This repository contains code to allow [glimpse](https://github.com/CosmoStat/Glimpse) (a mass-mapping algorithm that works on patches of the sky that are assumed to be small and flat) to be run on a larger patch (such as the DES footprint).
 
-It does this in three steps:
-a) create_cutouts, where an input weak-lensing catalogue is subdivided into many smaller overlapping sub-catalogues (call each one a cutout);
-b) run_glimpse, in which glimpse is run (possibly in parallel) on each cutout;
-c) merge, in which the individual cutout glimpse results are merged together to create an output convergence map (Healpix format).
+The code does this in three steps:
+a. *create_cutouts*: an input weak-lensing catalogue is subdivided into many smaller overlapping sub-catalogues (call each one a 'cutout');
+b. *run_glimpse*: glimpse is run (possibly in parallel) on each cutout;
+c. *merge*: the separate glimpse results are merged together to create an output convergence map (in Healpix format).
+
+The code is structured so that other mass-mapping algorithms can be handled in the future.
 
 ## Interface
 
