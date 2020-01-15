@@ -60,8 +60,8 @@ def compare_two_cutouts():
 
     import matplotlib.pyplot as plt
 
-    (ra_1, dec_1, e1_1, e2_1) = get_from_fits_file("/share/splinter/ucapwhi/glimpse_project/output/Mcal_0.2_1.3.2218.glimpse.cat.fits", ["RA", "DEC", "E1", "E2"])
-    (ra_2, dec_2, e1_2, e2_2) = get_from_fits_file("/share/splinter/ucapwhi/glimpse_project/output_Mcal_badsign/Mcal_0.2_1.3.2218.glimpse.cat.fits", ["RA", "DEC", "E1", "E2"])
+    (ra_1, dec_1, e1_1, e2_1) = get_from_fits_file("/share/splinter/ucapwhi/glimpse_project/output/Mcal_0.2_1.3.2218.cat.fits", ["RA", "DEC", "E1", "E2"])
+    (ra_2, dec_2, e1_2, e2_2) = get_from_fits_file("/share/splinter/ucapwhi/glimpse_project/output_Mcal_badsign/Mcal_0.2_1.3.2218.cat.fits", ["RA", "DEC", "E1", "E2"])
     
     for i in range(3159, 3170):
         print(i, ra_1[i], ra_2[i], dec_1[i], dec_2[i])
@@ -107,7 +107,7 @@ def glimpse_sign_experiment():
 def correct_one_shear_catalogue_caller():
     
     import glob
-    filelist = glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.glimpse.cat.fits")
+    filelist = glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.cat.fits")
     for f in filelist: 
         correct_one_shear_catalogue(f)
     
@@ -117,7 +117,7 @@ def correct_one_shear_catalogue_caller():
 
 def num_files_in_directory():
     import glob
-    print(len(glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Mcal_0.2_1.3.*.glimpse.cat.fits")))
+    print(len(glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Mcal_0.2_1.3.*.cat.fits")))
 
 
 
@@ -753,7 +753,7 @@ def plot_several_healpix_maps():
         
     if False:
         # Also plot some glimpse input data
-        f = "Mcal_0.2_1.3.1689.glimpse.cat.fits"
+        f = "Mcal_0.2_1.3.1689.cat.fits"
         maps.append(fits_catalog_to_healpix_map(path + f, nside, False))
         titles.append(f)
     
@@ -1172,7 +1172,7 @@ def create_cutouts_caller(ini_file_name, job_control):
     cutout_side_in_degrees = float(config["create_cutouts"].get("cutout_side_in_degrees", "16"))
     
     output_directory = os.path.dirname(os.path.abspath(ini_file_name))
-    output_file_root = "{}.glimpse.cat.fits"
+    output_file_root = "{}.cat.fits"
     
     create_cutouts(input_catalogue, ra_name, dec_name, shear_names, other_field_names, nside, cutout_side_in_degrees, job_control, output_directory, output_file_root)
 
@@ -1194,7 +1194,7 @@ def glimpse_caller(ini_file_name, job_id):
     output_directory = os.path.dirname(os.path.abspath(ini_file_name))
     exe_file = config["project"].get("glimpse_executable")
     
-    glimpse_cat_file_pattern = os.path.join(output_directory, "*.glimpse.cat.fits")
+    glimpse_cat_file_pattern = os.path.join(output_directory, "*.cat.fits")
     id_list = [int((os.path.basename(f)).split(".")[0]) for f in glob.glob(glimpse_cat_file_pattern)]
     id_list.sort()
     this_healpix_pixel_id = id_list[int(job_id)]
@@ -1204,7 +1204,7 @@ def glimpse_caller(ini_file_name, job_id):
     this_healpix_id_as_string = str(this_healpix_pixel_id).zfill(4)
     
     ini_file = os.path.join(output_directory, "glimpse.ini")
-    cat_file = os.path.join(output_directory, this_healpix_id_as_string + ".glimpse.cat.fits")
+    cat_file = os.path.join(output_directory, this_healpix_id_as_string + ".cat.fits")
     out_file = os.path.join(output_directory, this_healpix_id_as_string + ".glimpse.out.fits")
 
     subprocess.run([exe_file, ini_file, cat_file, out_file])
