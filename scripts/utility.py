@@ -9,8 +9,6 @@
 ########################## Start of one-off utilities ##########################
 
 
-
-
 # This function written by Macro Gatti. See Slack message on 22 December 2019.
 def apply_random_rotation(e1_in, e2_in):
     import numpy as np
@@ -76,14 +74,12 @@ def correct_one_shear_catalogue(catalogue_filename):
     
     print("Processing {}...".format(catalogue_filename))
     
-    #list_of_field_names = ["RA", "DEC", "E1", "E2", "true_z"]
     list_of_field_names = ["ra_gal", "dec_gal", "e1_gal", "e2_gal", "z"]
     list_of_data_columns = get_from_fits_file(catalogue_filename, list_of_field_names)
         
     list_of_data_columns[2] *= -1.0 # e1_gal
     list_of_data_columns[3] *= -1.0 # e2_gal
     
-    #output_filename = catalogue_filename.replace("/output/", "/output1/")
     output_filename = catalogue_filename.replace(".fits", ".negative.fits")
     
     write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns)
@@ -1478,25 +1474,27 @@ def merge_caller(ini_file_name, job_control):
 
 if __name__ == '__main__':
 
-
-    #print_list_of_healpixels()
-    #kappa_values_in_one_fine_pixel()
-    #tester()
-    #save_buzzard_truth()
+    # Test harnesses
     #sphere_to_tangent_plane_mapping_test_harness()
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
-    #plot_several_healpix_maps()
-    #create_test_catalogue()
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()
+    #array_slice_from_job_control_string_test_harness()
+    #angular_separation_test_harness()
+   
+    
+    #kappa_values_in_one_fine_pixel()
+    #tester()
+    #save_buzzard_truth()
+    #plot_several_healpix_maps()
+    #create_test_catalogue()
     #correct_one_shear_catalogue_caller()
     #redshift_histogram()
     #clean_up_edges()
     #shear_stdev()
     #add_dummy_redshift_column(metacal_data_file_name())
-    #angular_separation_test_harness()
     #num_files_in_directory()
     #to_from_standard_position_fast_test_harness()
     #angular_separation_fast_test_harness()
@@ -1506,8 +1504,7 @@ if __name__ == '__main__':
     #show_glimpse_output_as_image()
     #compare_two_cutouts()
     #joint_filter_example()
-    #array_slice_from_job_control_string_test_harness()
-    append_random_shear_to_Buzzard()
+    #append_random_shear_to_Buzzard()
     pass
     
     
