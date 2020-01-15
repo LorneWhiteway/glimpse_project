@@ -13,4 +13,4 @@
 ### Call this with a command line such as 'sbatch --array=0-49 ./job_script_glimpse_caller'
 
 source /share/splinter/ucapwhi/glimpse_project/set_environment.csh
-srun /share/splinter/ucapwhi/glimpse_project/scripts/glimpse_on_curved_sky.py -i /share/splinter/ucapwhi/glimpse_project/output_Mcal_signal_moreloops/Mcal_0.2_1.3.signal.glimpse.ini -t run_glimpse -j ${SLURM_ARRAY_TASK_ID}
+srun /share/splinter/ucapwhi/glimpse_project/scripts/glimpse_on_curved_sky.py -i /share/splinter/ucapwhi/glimpse_project/runs/output_Buzzard_192_random/glimpse.ini -t run_glimpse -j ${SLURM_ARRAY_TASK_ID}
