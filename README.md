@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository contains scripts to allow glimpse (a mass-mapping algorithm that works on patches of the sky that are assumed to be small and flat) to be run on a larger patch (such as the DES footprint).
+This repository contains scripts to allow [glimpse](https://github.com/CosmoStat/Glimpse) (a mass-mapping algorithm that works on patches of the sky that are assumed to be small and flat) to be run on a larger patch (such as the DES footprint).
 
 It does this in three steps:
 a) create_cutouts, where an input weak-lensing catalogue is subdivided into many smaller overlapping sub-catalogues (call each one a cutout);
@@ -11,7 +11,7 @@ c) merge, in which the individual cutout glimpse results are merged together to 
 
 ## Interface
 
-The primary interface is the Python script `glimpse_on_curved_sky.py` in the \scripts directory. Run this with command line arguments as follows:
+The primary interface is the Python script `glimpse_on_curved_sky.py` in the `./scripts` directory. Run this with command line arguments as follows:
 
 | Option | Meaning |
 | --- | --- |
