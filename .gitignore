@@ -1,7 +1,7 @@
 Glimpse/
 test/*.out.fits
 test/*.cat.fits
-test/*.out
+*.out
 scripts/__pycache__/
 old/
 logs/
