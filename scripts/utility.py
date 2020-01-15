@@ -182,19 +182,6 @@ def tester():
     id = hp.ang2pix(1024, ra, dec, False, lonlat=True)
     print(ra,dec,id)
 
-# Output is sorted
-def healpixel_ids_for_jobs():
-    import glob
-    filelist = glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.glimpse.ini")
-    filelist.sort()
-    return [int(f.split(".")[1]) for f in filelist]
-    
-
-
-def print_list_of_healpixels():
-    ids = healpixel_ids_for_jobs()
-    for (i, id) in zip(range(len(ids)), ids):
-        print(i, id)
 
 def add_dummy_redshift_column(file_name):
 
@@ -1203,7 +1190,7 @@ def glimpse_caller(ini_file_name, job_id):
     
     this_healpix_id_as_string = str(this_healpix_pixel_id).zfill(4)
     
-    ini_file = os.path.join(output_directory, "glimpse.ini")
+    ini_file = os.path.abspath(ini_file_name)
     cat_file = os.path.join(output_directory, this_healpix_id_as_string + ".cat.fits")
     out_file = os.path.join(output_directory, this_healpix_id_as_string + ".glimpse.out.fits")
 
