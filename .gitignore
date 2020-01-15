@@ -1,8 +1,9 @@
 Glimpse/
-test/*.out.fits
-test/*.cat.fits
+regression_test/*.out.fits
+regression_test/*.cat.fits
 *.out
 scripts/__pycache__/
 old/
 logs/
+runs/
 
