@@ -22,10 +22,23 @@ def apply_random_rotation(e1_in, e2_in):
     e2_out = - e1_in * sin + e2_in * cos
     return e1_out, e2_out
     
-
-
-
-
+    
+def append_random_shear_to_Buzzard():
+    list_of_field_names = ["RA", "DEC", "E1", "E2", "G1", "G2", "k_orig", "true_z"]
+    (ra, dec, e1, e2, g1, g2, k_orig, true_z) = get_from_fits_file(buzzard_data_file_name(), list_of_field_names)
+    print("{} galaxies".format(len(ra)))
+    print(list_of_field_names)
+    print("About to call apply_random_rotation")
+    (e1_random, e2_random) = apply_random_rotation(e1, e2)
+    list_of_data_columns = (ra, dec, e1, e2, g1, g2, k_orig, true_z, e1_random, e2_random)
+    list_of_field_names.append("E1_RANDOM")
+    list_of_field_names.append("E2_RANDOM")
+    print("Finished calling apply_random_rotation")
+    print(list_of_field_names)
+    output_filename = "/share/splinter/ucapwhi/glimpse_project/Buzzard_192_with_random.fits"
+    write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns)
+    
+    
 
 
 # See p. GL148
@@ -1487,7 +1500,7 @@ if __name__ == '__main__':
     #index_into_glimpse_array_test_harness()
     #ra_dec_to_healpixel_id_test_harness()
     #plot_several_healpix_maps()
-    create_test_catalogue()
+    #create_test_catalogue()
     #to_standard_position_test_harness()
     #from_standard_position_test_harness()
     #to_from_standard_position_test_harness()
@@ -1507,6 +1520,7 @@ if __name__ == '__main__':
     #compare_two_cutouts()
     #joint_filter_example()
     #array_slice_from_job_control_string_test_harness()
+    append_random_shear_to_Buzzard()
     pass
     
     
