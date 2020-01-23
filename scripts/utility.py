@@ -36,8 +36,6 @@ def append_random_shear_to_Buzzard():
     output_filename = "/share/splinter/ucapwhi/glimpse_project/Buzzard_192_with_random.fits"
     write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns)
     
-    
-
 
 # See p. GL148
 def joint_filter_example():
@@ -106,9 +104,7 @@ def correct_one_shear_catalogue_caller():
     filelist = glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.cat.fits")
     for f in filelist: 
         correct_one_shear_catalogue(f)
-    
-
-    
+   
     
 
 def num_files_in_directory():
@@ -130,6 +126,14 @@ def redshift_histogram():
     for (b0, b1, h) in zip(bin_edges[:-1], bin_edges[1:], hist):
         print("{0:.2f}\t{1:.2f}\t{2:d}".format(b0, b1, h))
 
+
+# Written to produce data for Niall; used on 10 Dec 2019
+def shear_stdev():
+    import numpy as np
+    (e1, e2) = get_from_fits_file(buzzard_data_file_name(), ["E1", "E2"])
+    e1_and_e2 = np.concatenate((e1, e2))
+    print(np.std(e1_and_e2))
+
     
 def kappa_histogram():
 
@@ -144,6 +148,8 @@ def kappa_histogram():
     plt.hist(m[np.where(m != 0.0)], bins = 50)
     plt.show()
     
+
+
 def show_glimpse_output_as_image():
 
     import numpy as np
@@ -160,23 +166,9 @@ def show_glimpse_output_as_image():
     plt.imshow(kappa_as_2d_array)
     plt.show()
     
-    
-
-    
-# Written to produce data for Niall; used on 10 Dec 2019
-def shear_stdev():
-    import numpy as np
-    (e1, e2) = get_from_fits_file(buzzard_data_file_name(), ["E1", "E2"])
-    e1_and_e2 = np.concatenate((e1, e2))
-    print(np.std(e1_and_e2))
 
 
 
-def tester():
-    import healpy as hp
-    (ra ,dec) = hp.pix2ang(16, 1242, False, True)
-    id = hp.ang2pix(1024, ra, dec, False, lonlat=True)
-    print(ra,dec,id)
 
 
 def add_dummy_redshift_column(file_name):
@@ -1487,7 +1479,6 @@ if __name__ == '__main__':
    
     
     #kappa_values_in_one_fine_pixel()
-    #tester()
     #save_buzzard_truth()
     plot_several_healpix_maps()
     #create_test_catalogue()
