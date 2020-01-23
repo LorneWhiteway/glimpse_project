@@ -711,10 +711,8 @@ def plot_several_healpix_maps():
     titles = []
 
     # 1. maps from healpix files
-    path = "/share/splinter/ucapwhi/glimpse_project/output_Mcal_signal/"
-    #filenames = ["Buzzard_192.90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat", "Buzzard_192.90_110_2048_downgraded_to_1024.glimpse.merged.values.dat", "Buzzard_192.nside" + str(nside) + "_truth.dat"]
-    #filenames = ["patch_1242_90_110_2048_values.dat"]
-    filenames = ["Mcal_0.2_1.3.signal.glimpse.merged.values.dat"]
+    path = "/share/splinter/ucapwhi/glimpse_project/runs/"
+    filenames = ["Mcal_signal/glimpse.merged.values.dat", "Buzzard_192_signal/glimpse.merged.values.dat"]
         
     
     weight_maps = []
@@ -729,8 +727,8 @@ def plot_several_healpix_maps():
     
     for f in filenames:
         print("Using file {}".format(f))
-        maps.append(hp.read_map(path + f))
-        titles.append(f)
+        maps.append(hp.read_map(path + f, verbose=False))
+        titles.append(f.replace("/glimpse.merged.values.dat",""))
         
     # 2. other maps
         
@@ -764,7 +762,7 @@ def plot_several_healpix_maps():
     maps_to_smooth = []
     for i in maps_to_smooth:
         one_arcmin_in_radians = 0.000290888
-        smoothing_scale_in_arcmin = 7.0
+        smoothing_scale_in_arcmin = 1.0
         maps[i] = hp.smoothing(maps[i], sigma = smoothing_scale_in_arcmin * one_arcmin_in_radians)
         titles[i] += " smoothed at {} arcmin".format(smoothing_scale_in_arcmin)
     
@@ -776,20 +774,23 @@ def plot_several_healpix_maps():
         maps.append(percentage_diff)
         titles.append("Percentage difference")
     
-    
+    plt.figure(figsize=(12,7))
     for map, title, i in zip(maps, titles, range(len(maps))):
         if False:
             hp.mollview(map, fig=i, title=title)
-        elif True:
+        elif False:
             #rot = (326.25, 12.024699, 0.0)
             #rot = (180.0, 0.0, 0.0)
             rot = (75.0, -55.0, 0.0)
             hp.gnomview(map, fig=i, rot=rot, title=title, reso=3.3, xsize=400) # , max=0.104, min=-0.0264)
         else:
-            rot = (75.0, -55.0, 0.0)
-            hp.cartview(map, fig=i, rot=rot, title=title, xsize=400) # , max=0.104, min=-0.0264)
+            rot = (20.0, -20.0, 0.0)
+            map = np.where(np.abs(map)<1e-7, np.nan, map)
+            #map = (0.2 * (map - np.min(map)) / (np.max(map) - np.min(map))) - 0.1
+            #hp.orthview(map, fig=i, rot=rot, title=title, xsize=400, badcolor="grey", half_sky=True) # max=0.1, min=-0.1, 
+            hp.orthview(map, rot=rot, title=title, xsize=400, badcolor="grey", half_sky=True, sub=((1,2,1) if (i==0) else (1,2,2))) # max=0.1, min=-0.1, 
         
-        hp.graticule(dpar=5.0)
+        hp.graticule(dpar=30.0)
     
     plt.show()
     
@@ -1488,7 +1489,7 @@ if __name__ == '__main__':
     #kappa_values_in_one_fine_pixel()
     #tester()
     #save_buzzard_truth()
-    #plot_several_healpix_maps()
+    plot_several_healpix_maps()
     #create_test_catalogue()
     #correct_one_shear_catalogue_caller()
     #redshift_histogram()
