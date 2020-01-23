@@ -38,7 +38,7 @@ The configuration file should be in [standard INI file format](https://en.wikipe
 | create_cutouts | dec_name | Catalogue field name for declination (assumed to be in decimal degrees between -90 and 90). Optional; default is "DEC". |
 | create_cutouts | shear_names | Comma-delimited list of catalogue field names for weak-lensing shear values to be written to the cutouts. Provide one or more pairs of field names. Required. Example: "E1,E2"|
 | create_cutouts | other_field_names | Comma-delimited list of catalogue field names for other fields (such as redshift) to be written to the cutouts. Required. |
-| create_cutouts | nside | The cutouts will be centred on the centres of Healpix pixels with this value as NSIDE. Option; default is 16. |
+| create_cutouts | nside | The cutouts will be centred on the centres of Healpix pixels with this value as NSIDE. Optional; default is 16. |
 | create_cutouts | cutout_side_in_degrees | The side length of each cutout, in degrees. Optional; default is 16. |
 
 
