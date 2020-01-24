@@ -19,7 +19,7 @@ The primary interface is the Python script `glimpse_on_curved_sky.py` in the `./
 | --- | --- |
 | -i | Name of configuration file. See below for details of configuration file format. Required. |
 | -t | Task. One of "create_cutouts", "run_glimpse" or "merge". Required. |
-| -j | Job control. See below for more information. Optional; see below for default behavious if not provided. |
+| -j | Job control. See below for more information. Optional; see below for default behaviour if not provided. |
 
 Example:
 ```
@@ -56,8 +56,8 @@ If *c* contains no galaxies then no corresponding file will be created.
 | Key | Value |
 | --- | --- |
 | input_catalogue | The full name of the source weak-lensing catalogue (FITS format). Required. |
-| ra_name | Catalogue field name for right ascension (assumed to be in decimal degrees between 0 and 360). The values in this field will be written to the cutout files. Optional; default is "RA". |
-| dec_name | Catalogue field name for declination (assumed to be in decimal degrees between -90 and 90). The values in this field will be written to the cutout files. Optional; default is "DEC". |
+| ra_name | Catalogue field name for right ascension. The values in this field will be written to the cutout files. Optional; default is "RA". |
+| dec_name | Catalogue field name for declination. The values in this field will be written to the cutout files. Optional; default is "DEC". |
 | shear_names | Comma-delimited list of catalogue field names for weak-lensing shear values to be written to the cutouts. Provide one or more pairs of field names. Required. Example: "E1,E2"|
 | other_field_names | Comma-delimited list of catalogue field names for other fields (such as redshift) to be written to the cutouts. Required. |
 | nside | The cutouts will be centred on the centres of Healpix pixels with this value as NSIDE. Optional; default is 16. |
