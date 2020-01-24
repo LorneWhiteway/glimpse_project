@@ -68,11 +68,11 @@ If *c* contains no galaxies then no corresponding file will be created.
 Each glimpse output file contains convergence (kappa) values on an array of points (an evenly-spaced square array of points in the tangent plane (i.e. tangent at the centre of the glimpse input region) which are then projected back down to the celestial sphere using an [orthographic](https://en.wikipedia.org/wiki/Orthographic_projection_in_cartography) projection).
 
 Merging begins by translating each output array of points from the standard centre back to the appropriate healpix centre, and undoing the 45 degree rotation. For each point *q* in a given array we assign a weight *w(q)* as follows:
-1. if the distance from *q* to the edge (in units given by the array spacing) is less than or equal to *outer_border* then *w(q)* is zero;
+1. if the distance from *q* to the edge (in units given by the array spacing; by 'edge' we mean the outermost set of array points) is less than *outer_border* then *w(q)* is zero;
 2. if this distance is greater than or equal to *inner_border* then *w(q)* is one;
 3. otherwise *w(q)* varies smoothly between these two extremes.
 
-We then create a fine Healpixelisation with NSIDE *intermediate_nside*. For each pixel *p* in this Healpixelisation and each output glimpse array *a* we find the point *q(a,p)* in *a* that is closest to the centre of *p* together with its associated weight *w(a,p)*. The pixel *p* is then assigned a kappa value that is the weighted average of the glimpse kappa values at the points *q(a,p)* (as *a* ranges across all glimpse output files), using as weights the *w(a,p)*. Note that since the weights are zero on the edge of *a*, arrays that are distant from *p* will not contribuute to the weighted average (as expected). This gives us a healpix map of weighted average kappa values (we also create a healpix map of weights).
+We then create a fine Healpixelisation with NSIDE *intermediate_nside*. For each pixel *p* in this Healpixelisation and each output glimpse array *a* we find the point *q(a,p)* in *a* that is closest to the centre of *p* (together with its associated weight *w(a,p)*). The pixel *p* is then assigned a kappa value that is the weighted average of the glimpse kappa values at the points *q(a,p)* (as *a* ranges across all glimpse output files), using as weights the *w(a,p)*. Note that since the weights are zero on the edge of *a*, arrays that are distant from *p* will not contribuute to the weighted average (as expected). This gives us a healpix map of weighted average kappa values (we also create a healpix map of weights).
 
 Two final post-processing steps are performed:
 1. The value and weight maps are downsampled to NSIDE *output_nside*;
@@ -80,11 +80,11 @@ Two final post-processing steps are performed:
 
 | Key | Value |
 | --- | --- |
-| outer_border | 90 |
-| inner_border | 110 |
-| intermediate_nside | 2048 |
-| output_nside | 1024 |
-| apply_galaxy_mask? | True |
+| outer_border | Used to specify weights to be assigned to glimpse array points; see above for details. Must be positive. Typical value is 90. Required. |
+| inner_border | Used to specify weights to be assigned to glimpse array points; see above for details. Cannot be less than inner_border. Typical value is 110. Required. |
+| intermediate_nside | NSIDE of intermediate (fine) healpixelisation when merging; see above for details. Typical value is 2048. Required. |
+| output_nside | NSIDE of healpixelisation used in final output map. Typical value is 1024. (Fun fact: on Earth an NSIDE of 1024 would give pixels about two-thirds the size of Manhattan). Required. |
+| apply_galaxy_mask? | If True, then mask the output map by setting kappa values to zero for pixels containing no source galaxies. Required. |
 
 #### Section [survey]
 
