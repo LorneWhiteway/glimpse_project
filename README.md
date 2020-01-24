@@ -88,15 +88,42 @@ Two final post-processing steps are performed:
 
 #### Section [survey]
 
-This section is used by Glimpse; in the future perhaps you will be able to refer to glimpse documentation for details.
+This section is used by Glimpse
+
+| Section | Key | Value |
+| --- | --- | --- |
+| survey | center_ra | =180.0 |
+| survey | center_dec | =0.0 |
+| survey | size | =16.0 |
+| survey | units | =degrees |
+| survey | hdu | =1 |
+| survey | flip_e2 | =true |
+| survey | ra | =RA |
+| survey | dec | =DEC |
+| survey | e1 | =E1 |
+| survey | e2 | =E2 |
+| survey | z | =DUMMY_Z |
+
+
 
 #### Section [cosmology]
 
-This section is used by Glimpse; in the future perhaps you will be able to refer to glimpse documentation for details.
+| Section | Key | Value |
+| --- | --- | --- |
+| cosmology | Omega_m | =0.25 |
+| cosmology | h | =0.70 |
+
 
 #### Section [field]
 
-This section is used by Glimpse; in the future perhaps you will be able to refer to glimpse documentation for details.
+| Section | Key | Value |
+| --- | --- | --- |
+| field | units | =arcmin |
+| field | pixel_size | =3.5 |
+| field | padding | =28 |
+| field | include_flexion | =false |
+| field | zlens | =-1 |
+
 
 #### Section [parameters]
 
