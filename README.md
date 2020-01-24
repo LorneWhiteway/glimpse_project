@@ -113,9 +113,9 @@ Use this command line parameter to subselect only some data for processing.
 
 1. At run time the user specifies an ini file. All intermediate and output files are created in the same directory as the ini file (so it makes sense to give this directory a name reflecting its purpose).
 2. The ini file can have any name (but glimpse.ini is traditional).
-3. Cutout catalogues will have names <id>.cat.fits where <id> is the id of the cutout (= healpix id of central point).
-4. Output files from glimpse will have names <id>.glimpse.out.fits.
-5. Final output value and weight files will be called glimpse.merged.values.dat and glimpse.merged.weights.dat.
+3. Cutout catalogues will have names `{id}.cat.fits` where `{id}` is the id of the cutout (= healpix id of central point).
+4. Output files from glimpse will have names `{id}.glimpse.out.fits`.
+5. Final output value and weight files will be called `glimpse.merged.values.dat` and `glimpse.merged.weights.dat` respectively.
 
 
 ## Information useful for running glimpse on the splinter cluster at UCL.
