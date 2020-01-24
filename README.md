@@ -67,7 +67,16 @@ If *c* contains no galaxies then no corresponding file will be created.
 
 Each glimpse output file contains convergence (kappa) values on an array of points (an evenly-spaced square array of points in the tangent plane (i.e. tangent at the centre of the glimpse input region) which are then projected back down to the celestial sphere using an [orthographic](https://en.wikipedia.org/wiki/Orthographic_projection_in_cartography) projection).
 
-Merging begins translating each output array of points 
+Merging begins by translating each output array of points from the standard centre back to the appropriate healpix centre, and undoing the 45 degree rotation. For each point *p* in a given array we assign a weight *w(p)* as follows:
+1. *w(p)* is zero if the distance from *p* to the edge (in units given by the array spacing) is less than or equal to *outer_border*;
+2. *w(p)* is one if this distance is greater than or equal to *inner_border*;
+3. other *w(p)* varies smoothly between these two extremes.
+
+
+
+We then create a fine Healpixelisation whith NSIDE *intermediate_nside*. 
+
+
 
 | Key | Value |
 | --- | --- |
@@ -95,9 +104,9 @@ This section is used by Glimpse; in the future perhaps you will be able to refer
 
 ### Job Control
 
-Use this command line parameter so specify that which part of the data should be used.
+Use this command line parameter to subselect only some data for processing.
 
-1. When creating cutouts and when merging, use this to specify that only a subset of all possible cutouts should be handled. Use Python slice notation, so that for example `[2000:2100]` would handle only cutouts with 2000 <= id < 2100, while `[::2]` would handle all even-numbered cutouts. Note that ids are zero-based. For cutout creation and merging, job_control is optional; if omitted then all possible cutouts will be handled.
+1. When creating cutouts and when merging, use this to specify that only a subset of all possible cutouts should be handled - this is useful primarily during testing. Use Python slice notation, so that for example `[2000:2100]` would handle only cutouts with 2000 <= id < 2100, while `[::2]` would handle all even-numbered cutouts. Note that ids are zero-based. For cutout creation and merging, job_control is optional; if omitted then all possible cutouts will be handled.
 2. When running glimpse, use this to specify the id of which single cutout is to be processed. Note that ids are zero-based. Required.
 
 
