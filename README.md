@@ -7,7 +7,7 @@ This repository contains code to allow [glimpse](https://github.com/CosmoStat/Gl
 The code does this in three steps:
 1. *create_cutouts*: an input weak-lensing catalogue is subdivided into many smaller overlapping sub-catalogues (call each one a 'cutout');
 2. *run_glimpse*: glimpse is run (possibly in parallel) on each cutout;
-3. *merge*: the separate glimpse results are merged together to create an output convergence map (in Healpix format).
+3. *merge*: the separate glimpse results are merged together to create an output convergence map (in healpix format).
 
 The code is structured so that other mass-mapping algorithms besides glimpse can be handled in the future.
 
@@ -49,7 +49,7 @@ Each cutout catalogue *c* will contain data on galaxies that are in a diamond-sh
 
 Once these galaxies have been selected, all the data is then:
 1. translated to be centred at the standard centre (RA=180, DEC=0). (We use a standard centre so that we do not need separate glimpse ini files for each cutout; this particular standard centre was chosen as it is well away from the RA=0 line which glimpse does not handle well (due to the discontinuity in RA));
-2. rotated (TODO: which direction?) by 45 degrees (so that its sides are parallel to the RA/DEC coordinate axes). Shear values are transformed appropriately. (This rotation is done because our use of Healpix to generate cutout centres leads to a preference for diamond-shaped regions, while glimpse prefers a square input region).
+2. rotated (TODO: which direction?) by 45 degrees (so that its sides are parallel to the RA/DEC coordinate axes). Shear values are transformed appropriately. (This rotation is done because our use of healpix to generate cutout centres leads to a preference for diamond-shaped regions, while glimpse prefers a square input region).
 
 If *c* contains no galaxies then no corresponding file will be created.
 
@@ -60,7 +60,7 @@ If *c* contains no galaxies then no corresponding file will be created.
 | dec_name | Catalogue field name for declination. The values in this field will be written to the cutout files. Optional; default is "DEC". |
 | shear_names | Comma-delimited list of catalogue field names for weak-lensing shear values to be written to the cutouts. Provide one or more pairs of field names. Required. Example: "E1,E2"|
 | other_field_names | Comma-delimited list of catalogue field names for other fields (such as redshift) to be written to the cutouts. Required. |
-| nside | The cutouts will be centred on the centres of Healpix pixels with this value as NSIDE. Optional; default is 16. |
+| nside | The cutouts will be centred on the centres of healpixels with this value as NSIDE. Optional; default is 16. |
 | cutout_side_in_degrees | The side length of each cutout, in degrees. Optional; default is 16. |
 
 #### Section [merge]
@@ -72,7 +72,7 @@ Merging begins by translating each output array of points from the standard cent
 2. if this distance is greater than or equal to *inner_border* then *w(q)* is one;
 3. otherwise *w(q)* varies smoothly between these two extremes.
 
-We then create a fine Healpixelisation with NSIDE *intermediate_nside*. For each pixel *p* in this Healpixelisation and each output glimpse array *a* we find the point *q(a,p)* in *a* that is closest to the centre of *p* (together with its associated weight *w(a,p)*). The pixel *p* is then assigned a kappa value that is the weighted average of the glimpse kappa values at the points *q(a,p)* (as *a* ranges across all glimpse output files), using as weights the *w(a,p)*. Note that since the weights are zero on the edge of *a*, arrays that are distant from *p* will not contribuute to the weighted average (as expected). This gives us a healpix map of weighted average kappa values (we also create a healpix map of weights).
+We then create a fine healpixelisation with NSIDE *intermediate_nside*. For each pixel *p* in this healpixelisation and each output glimpse array *a* we find the point *q(a,p)* in *a* that is closest to the centre of *p* (together with its associated weight *w(a,p)*). The pixel *p* is then assigned a kappa value that is the weighted average of the glimpse kappa values at the points *q(a,p)* (as *a* ranges across all glimpse output files), using as weights the *w(a,p)*. Note that since the weights are zero on the edge of *a*, arrays that are distant from *p* will not contribute to the weighted average (as expected). This gives us a healpix map of weighted average kappa values (we also create a healpix map of weights).
 
 Two final post-processing steps are performed:
 1. The value and weight maps are downsampled to NSIDE *output_nside*;
@@ -108,6 +108,14 @@ Use this command line parameter to subselect only some data for processing.
 
 1. When creating cutouts and when merging, use this to specify that only a subset of all possible cutouts should be handled - this is useful primarily during testing. Use Python slice notation, so that for example `[2000:2100]` would handle only cutouts with 2000 <= id < 2100, while `[::2]` would handle all even-numbered cutouts. Note that ids are zero-based. For cutout creation and merging, job_control is optional; if omitted then all possible cutouts will be handled.
 2. When running glimpse, use this to specify the id of which single cutout is to be processed. Note that ids are zero-based. Required.
+
+## File names
+
+1. At run time the user specifies an ini file. All intermediate and output files are created in the same directory as the ini file (so it makes sense to give this directory a name reflecting its purpose).
+2. The ini file can have any name (but glimpse.ini is traditional).
+3. Cutout catalogues will have names <id>.cat.fits where <id> is the id of the cutout (= healpix id of central point).
+4. Output files from glimpse will have names <id>.glimpse.out.fits.
+5. Final output value and weight files will be called glimpse.merged.values.dat and glimpse.merged.weights.dat.
 
 
 ## Information useful for running glimpse on the splinter cluster at UCL.
