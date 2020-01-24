@@ -32,9 +32,9 @@ The configuration file should be in [standard INI file format](https://en.wikipe
 
 #### Section [project]
 
-| Key | Value |
-| --- | --- |
-| glimpse_executable | Path to glimpse executable e.g. /home/Glimpse/glimpse. Required. |
+| Section | Key | Value |
+| --- | --- | --- |
+| project | glimpse_executable | Path to glimpse executable e.g. /home/Glimpse/glimpse. Required. |
 
 #### Section [create_cutouts]
 
@@ -53,15 +53,15 @@ Once these galaxies have been selected, all the data is then:
 
 If *c* contains no galaxies then no corresponding file will be created.
 
-| Key | Value |
-| --- | --- |
-| input_catalogue | The full name of the source weak-lensing catalogue (FITS format). Required. |
-| ra_name | Catalogue field name for right ascension. The values in this field will be written to the cutout files. Optional; default is "RA". |
-| dec_name | Catalogue field name for declination. The values in this field will be written to the cutout files. Optional; default is "DEC". |
-| shear_names | Comma-delimited list of catalogue field names for weak-lensing shear values to be written to the cutouts. Provide one or more pairs of field names. Required. Example: "E1,E2"|
-| other_field_names | Comma-delimited list of catalogue field names for other fields (such as redshift) to be written to the cutouts. Required. |
-| nside | The cutouts will be centred on the centres of healpixels with this value as NSIDE. Optional; default is 16. |
-| cutout_side_in_degrees | The side length of each cutout, in degrees. Optional; default is 16. |
+| Section | Key | Value |
+| --- | --- | --- |
+| create_cutouts | input_catalogue | The full name of the source weak-lensing catalogue (FITS format). Required. |
+| create_cutouts | ra_name | Catalogue field name for right ascension. The values in this field will be written to the cutout files. Optional; default is "RA". |
+| create_cutouts | dec_name | Catalogue field name for declination. The values in this field will be written to the cutout files. Optional; default is "DEC". |
+| create_cutouts | shear_names | Comma-delimited list of catalogue field names for weak-lensing shear values to be written to the cutouts. Provide one or more pairs of field names. Required. Example: "E1,E2"|
+| create_cutouts | other_field_names | Comma-delimited list of catalogue field names for other fields (such as redshift) to be written to the cutouts. Required. |
+| create_cutouts | nside | The cutouts will be centred on the centres of healpixels with this value as NSIDE. Optional; default is 16. |
+| create_cutouts | cutout_side_in_degrees | The side length of each cutout, in degrees. Optional; default is 16. |
 
 #### Section [merge]
 
@@ -78,13 +78,13 @@ Two final post-processing steps are performed:
 1. The value and weight maps are downsampled to NSIDE *output_nside*;
 2. If desired (via *apply_galaxy_mask?*) the downsampled value map (but not the weight map) is masked by setting to zero the kappa value in any healpixel in which no source galaxies were found.
 
-| Key | Value |
-| --- | --- |
-| outer_border | Used to specify weights to be assigned to glimpse array points; see above for details. Must be positive. Typical value is 90. Required. |
-| inner_border | Used to specify weights to be assigned to glimpse array points; see above for details. Cannot be less than inner_border. Typical value is 110. Required. |
-| intermediate_nside | NSIDE of intermediate (fine) healpixelisation when merging; see above for details. Typical value is 2048. Required. |
-| output_nside | NSIDE of healpixelisation used in final output map. Typical value is 1024. (Fun fact: on Earth an NSIDE of 1024 would give pixels about two-thirds the size of Manhattan). Required. |
-| apply_galaxy_mask? | If True, then mask the output map by setting kappa values to zero for pixels containing no source galaxies. Required. |
+| Section | Key | Value |
+| --- | --- | --- |
+| merge | outer_border | Used to specify weights to be assigned to glimpse array points; see above for details. Must be positive. Typical value is 90. Required. |
+| merge | inner_border | Used to specify weights to be assigned to glimpse array points; see above for details. Cannot be less than inner_border. Typical value is 110. Required. |
+| merge | intermediate_nside | NSIDE of intermediate (fine) healpixelisation when merging; see above for details. Typical value is 2048. Required. |
+| merge | output_nside | NSIDE of healpixelisation used in final output map. Typical value is 1024. (Fun fact: on Earth an NSIDE of 1024 would give pixels about two-thirds the size of Manhattan). Required. |
+| merge | apply_galaxy_mask? | If True, then mask the output map by setting kappa values to zero for pixels containing no source galaxies. Required. |
 
 #### Section [survey]
 
