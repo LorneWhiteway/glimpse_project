@@ -5,9 +5,9 @@
 This repository contains code to allow [glimpse](https://github.com/CosmoStat/Glimpse) (a mass-mapping algorithm that works on patches of the sky that are assumed to be small and flat) to be run on a larger patch (such as the DES footprint).
 
 The code does this in three steps:
-a. *create_cutouts*: an input weak-lensing catalogue is subdivided into many smaller overlapping sub-catalogues (call each one a 'cutout');
-b. *run_glimpse*: glimpse is run (possibly in parallel) on each cutout;
-c. *merge*: the separate glimpse results are merged together to create an output convergence map (in Healpix format).
+1. *create_cutouts*: an input weak-lensing catalogue is subdivided into many smaller overlapping sub-catalogues (call each one a 'cutout');
+2. *run_glimpse*: glimpse is run (possibly in parallel) on each cutout;
+3. *merge*: the separate glimpse results are merged together to create an output convergence map (in Healpix format).
 
 The code is structured so that other mass-mapping algorithms besides glimpse can be handled in the future.
 
@@ -89,14 +89,12 @@ This section is used by Glimpse; in the future perhaps you will be able to refer
 
 This section is used by Glimpse; in the future perhaps you will be able to refer to glimpse documentation for details.
 
-
-
 ### Job Control
 
 Use this command line parameter so specify that which part of the data should be used.
 
-1. When creating cutouts, use this to specify that only a subset os all possible healpixels should be examined.
-
+1. When creating cutouts and when merging, use this to specify that only a subset of all possible cutouts should be handled. Use Python slice notation, so that for example `[2000:2100]` would handle only cutouts with 2000 <= id < 2100, while `[::2]` would handle all even-numbered cutouts. Note that ids are zero-based. For cutout creation and merging, job_control is optional; if omitted then all possible cutouts will be handled.
+2. When running glimpse, use this to specify the id of which single cutout is to be processed. Note that ids are zero-based. Required.
 
 
 ## Information useful for running glimpse on the splinter cluster at UCL.
