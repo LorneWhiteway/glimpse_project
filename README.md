@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository contains code to allow [glimpse](https://github.com/CosmoStat/Glimpse) (a mass-mapping algorithm that works on patches of the sky that are assumed to be small and flat) to be run on a larger patch (such as the DES footprint).
+This repository contains code to allow [glimpse](https://github.com/CosmoStat/Glimpse) (a mass-mapping algorithm that works on patches of the sky that are assumed to be small and flat) to be run on a larger patch (such as the DES footprint). For more information about glimpse see [glimpse paper](https://arxiv.org/abs/1603.01599).
 
 The code does this in three steps:
 1. *create_cutouts*: an input weak-lensing catalogue is subdivided into many smaller overlapping sub-catalogues (call each one a 'cutout');
@@ -88,46 +88,60 @@ Two final post-processing steps are performed:
 
 #### Section [survey]
 
-This section is used by Glimpse
+This section is used by Glimpse.
 
 | Section | Key | Value |
 | --- | --- | --- |
-| survey | center_ra | =180.0 |
-| survey | center_dec | =0.0 |
-| survey | size | =16.0 |
-| survey | units | =degrees |
-| survey | hdu | =1 |
+| survey | center_ra | This must be set to 180.0 (the RA of the standard centre as described above). |
+| survey | center_dec | This must be set to 0.0 (the DEC of the standard centre as described above). |
+| survey | size | The side length in degrees of the glimpse output array of points. It is optimal to set this to the same value as create_cutouts::cutout_side_in_degrees (which is typically 16). |
+| survey | units | Set this to 'degrees'; if another unit is chosen then adjust values in this section accordingly. |
+| survey | hdu | Set this to 1 (this corresponds to the format of the cutout catalogue files). |
 | survey | flip_e2 | =true |
-| survey | ra | =RA |
-| survey | dec | =DEC |
-| survey | e1 | =E1 |
-| survey | e2 | =E2 |
-| survey | z | =DUMMY_Z |
-
-
+| survey | ra | Should equal create_cutouts::ra_name. |
+| survey | dec | Should equal create_cutouts::dec_name. |
+| survey | e1 | The name of the first shear field (which must have been mentioned in create_cutouts::shear_names). |
+| survey | e2 | The name of the second shear field (which must have been mentioned in create_cutouts::shear_names). |
+| survey | z | The name of the redshift field (which must have been mentioned in create_cutouts::other_field_names). |
 
 #### Section [cosmology]
 
+This section is used by Glimpse.
+
 | Section | Key | Value |
 | --- | --- | --- |
-| cosmology | Omega_m | =0.25 |
-| cosmology | h | =0.70 |
+| cosmology | Omega_m | Matter energy parameter (e.g. 0.25) |
+| cosmology | h | Hubble parameter in units of 100 km/s/Mpc (e.g. 0.70). |
 
 
 #### Section [field]
+
+This section is used by Glimpse.
 
 | Section | Key | Value |
 | --- | --- | --- |
 | field | units | =arcmin |
 | field | pixel_size | =3.5 |
 | field | padding | =28 |
-| field | include_flexion | =false |
-| field | zlens | =-1 |
+| field | include_flexion | Set this to false (so that second order 'flexion' information is not used). |
+| field | zlens | Set this to -1 (so that source galaxy redshifts are not used). |
 
 
 #### Section [parameters]
 
-This section is used by Glimpse; in the future perhaps you will be able to refer to glimpse documentation for details.
+This section is used by Glimpse.
+
+| Section | Key | Value |
+| --- | --- | --- |
+| parameters | nrandom | Unclear; suggest keeping this at the glimpse example value of 1000. |
+| parameters | niter | The number of iterations to use in glimpse's 'primal_dual' algorithm. Suggest values of 500 or 1000. TO DO: Investigate consequences of non-convergence of this algorithm. |
+| parameters | nreweights | Reweighting is the first of two procedures to correct bias in the amplitude of the output values; see section 3.2 in the [glimpse paper](https://arxiv.org/abs/1603.01599). Niall Jeffrey recommends setting this value to 0 to turn off this procedure. |
+| parameters | niter_debias | Reweighting is the second of two procedures to correct bias in the amplitude of the output values; see section 3.2 in the [glimpse paper](https://arxiv.org/abs/1603.01599). This value needs to be explored; to date it has been set to 0. |
+| parameters | nscales | =7 |
+| parameters | lambda | Regularisation parameter, controlling the tradeoff between likelihood (i.e. finding a reconstruction that explains the data well) and prior (i.e. finding a reconstruction with high prior probability i.e. is sparse). Niall Jeffrey suggests using 3.0 for observed data (this was found optimal on DES SV data - see section 4 in [this paper](https://arxiv.org/abs/1801.08945)) and 1.0 for simulated data in which shape noise is not present. |
+| parameters | battle_lemarie_reg | Unclear; suggest keeping this at the glimpse example value of 1 |
+| parameters | last_scale_reg | Unclear; suggest keeping this at the glimpse example value of 2 |
+
 
 ### Job Control
 
