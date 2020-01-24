@@ -48,8 +48,8 @@ Each cutout catalogue *c* will contain data on galaxies that are in a diamond-sh
 3. is rotated 45 degrees with respect to the RA/DEC axes.
 
 Once these galaxies have been selected, all the data is then:
-1. translated to be centred at RA=180, DEC=0;
-2. rotated (TODO: which direction?) by 45 degrees (so that its sides are parallel to the RA/DEC coordinate axes). Shear values are transformed appropriately.
+1. translated to be centred at the standard centre (RA=180, DEC=0). (We use a standard centre so that we do not need separate glimpse ini files for each cutout; this particular standard centre was chosen as it is well away from the RA=0 line which glimpse does not handle well (due to the discontinuity in RA));
+2. rotated (TODO: which direction?) by 45 degrees (so that its sides are parallel to the RA/DEC coordinate axes). Shear values are transformed appropriately. (This rotation is done because our use of Healpix to generate cutout centres leads to a preference for diamond-shaped regions, while glimpse prefers a square input region).
 
 If *c* contains no galaxies then no corresponding file will be created.
 
@@ -64,6 +64,10 @@ If *c* contains no galaxies then no corresponding file will be created.
 | cutout_side_in_degrees | The side length of each cutout, in degrees. Optional; default is 16. |
 
 #### Section [merge]
+
+Each glimpse output file contains convergence (kappa) values on an array of points (an evenly-spaced square array of points in the tangent plane (i.e. tangent at the centre of the glimpse input region) which are then projected back down to the celestial sphere using an [orthographic](https://en.wikipedia.org/wiki/Orthographic_projection_in_cartography) projection).
+
+Merging begins translating each output array of points 
 
 | Key | Value |
 | --- | --- |
