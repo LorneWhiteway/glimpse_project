@@ -68,15 +68,11 @@ If *c* contains no galaxies then no corresponding file will be created.
 Each glimpse output file contains convergence (kappa) values on an array of points (an evenly-spaced square array of points in the tangent plane (i.e. tangent at the centre of the glimpse input region) which are then projected back down to the celestial sphere using an [orthographic](https://en.wikipedia.org/wiki/Orthographic_projection_in_cartography) projection).
 
 Merging begins by translating each output array of points from the standard centre back to the appropriate healpix centre, and undoing the 45 degree rotation. For each point *p* in a given array we assign a weight *w(p)* as follows:
-1. *w(p)* is zero if the distance from *p* to the edge (in units given by the array spacing) is less than or equal to *outer_border*;
-2. *w(p)* is one if this distance is greater than or equal to *inner_border*;
-3. other *w(p)* varies smoothly between these two extremes.
-
-
+1. if the distance from *p* to the edge (in units given by the array spacing) is less than or equal to *outer_border* then *w(p)* is zero;
+2. if this distance is greater than or equal to *inner_border* then *w(p)* is one;
+3. otherwise *w(p)* varies smoothly between these two extremes.
 
 We then create a fine Healpixelisation whith NSIDE *intermediate_nside*. 
-
-
 
 | Key | Value |
 | --- | --- |
