@@ -88,7 +88,7 @@ Two final post-processing steps are performed:
 
 #### Section [survey]
 
-This section is used by Glimpse.
+This section is used by Glimpse to describe the format of input data (which in our case must equal the format of the cutout catalogues).
 
 | Section | Key | Value |
 | --- | --- | --- |
@@ -97,7 +97,7 @@ This section is used by Glimpse.
 | survey | size | The side length in degrees of the glimpse output array of points. It is optimal to set this to the same value as create_cutouts::cutout_side_in_degrees (which is typically 16). |
 | survey | units | Set this to 'degrees'; if another unit is chosen then adjust values in this section accordingly. |
 | survey | hdu | Set this to 1 (this corresponds to the format of the cutout catalogue files). |
-| survey | flip_e2 | =true |
+| survey | flip_e2 | Set to true or false depending on the weak lensing shear quote convention used in the input catalogue. Experiment to find the correct value. TODO: verify that we handle properly the 'rotate by 45 degrees' calulation for shear when this setting is 'true' (it works OK when 'false'). TODO: Describe the two quote conventions in more detail. |
 | survey | ra | Should equal create_cutouts::ra_name. |
 | survey | dec | Should equal create_cutouts::dec_name. |
 | survey | e1 | The name of the first shear field (which must have been mentioned in create_cutouts::shear_names). |
@@ -129,18 +129,18 @@ This section is used by Glimpse.
 
 #### Section [parameters]
 
-This section is used by Glimpse.
+This section controls the algorithm used by Glimpse.
 
 | Section | Key | Value |
 | --- | --- | --- |
 | parameters | nrandom | Unclear; suggest keeping this at the glimpse example value of 1000. |
-| parameters | niter | The number of iterations to use in glimpse's 'primal_dual' algorithm. Suggest values of 500 or 1000. TO DO: Investigate consequences of non-convergence of this algorithm. |
+| parameters | niter | The number of iterations to use in glimpse's 'primal_dual' algorithm. Suggest values of 500 or 1000. TODO: Investigate consequences of non-convergence of this algorithm. |
 | parameters | nreweights | Reweighting is the first of two procedures to correct bias in the amplitude of the output values; see section 3.2 in the [glimpse paper](https://arxiv.org/abs/1603.01599). Niall Jeffrey recommends setting this value to 0 to turn off this procedure. |
-| parameters | niter_debias | Reweighting is the second of two procedures to correct bias in the amplitude of the output values; see section 3.2 in the [glimpse paper](https://arxiv.org/abs/1603.01599). This value needs to be explored; to date it has been set to 0. |
-| parameters | nscales | =7 |
-| parameters | lambda | Regularisation parameter, controlling the tradeoff between likelihood (i.e. finding a reconstruction that explains the data well) and prior (i.e. finding a reconstruction with high prior probability i.e. is sparse). Niall Jeffrey suggests using 3.0 for observed data (this was found optimal on DES SV data - see section 4 in [this paper](https://arxiv.org/abs/1801.08945)) and 1.0 for simulated data in which shape noise is not present. |
-| parameters | battle_lemarie_reg | Unclear; suggest keeping this at the glimpse example value of 1 |
-| parameters | last_scale_reg | Unclear; suggest keeping this at the glimpse example value of 2 |
+| parameters | niter_debias | Reweighting is the second of two procedures to correct bias in the amplitude of the output values; see section 3.2 in the [glimpse paper](https://arxiv.org/abs/1603.01599). TODO: This value needs to be explored; to date it has been set to 0. |
+| parameters | nscales | Controls the number of wavelet scales used by glimpse. Section 5.2 of the [glimpse paper](https://arxiv.org/abs/1603.01599) describes an example in which this parameter is not crucial. Suggest keeping this at the glimpse example value of 7. TODO: experiment with alternative values. |
+| parameters | lambda | Regularisation parameter, controlling the tradeoff between likelihood (i.e. finding a reconstruction that explains the data well) and prior (i.e. finding a reconstruction with high prior probability i.e. is sparse). Niall Jeffrey suggests using 3.0 for observed data (this was found optimal on DES SV data - see section 4 in [this paper](https://arxiv.org/abs/1801.08945)). The [glimpse paper](https://arxiv.org/abs/1603.01599) (section 3.5) suggests using 0.01 for simulated data in which shape noise is not present. |
+| parameters | battle_lemarie_reg | Unclear; suggest keeping this at the glimpse example value of 1. |
+| parameters | last_scale_reg | Unclear; suggest keeping this at the glimpse example value of 2. |
 
 
 ### Job Control
