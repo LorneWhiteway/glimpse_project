@@ -65,14 +65,14 @@ If *c* contains no galaxies then no corresponding file will be created.
 
 #### Section [merge]
 
-Each glimpse output file contains convergence (kappa) values on an array of points (an evenly-spaced square array of points in the tangent plane (i.e. tangent at the centre of the glimpse input region) which are then projected back down to the celestial sphere using an [orthographic](https://en.wikipedia.org/wiki/Orthographic_projection_in_cartography) projection).
+Each glimpse output file contains convergence (kappa) values on an lattice of points (an evenly-spaced square lattice of points in the tangent plane (i.e. tangent at the centre of the glimpse input region) which are then projected back down to the celestial sphere using an [orthographic](https://en.wikipedia.org/wiki/Orthographic_projection_in_cartography) projection).
 
-Merging begins by translating each output array of points from the standard centre back to the appropriate healpix centre, and undoing the 45 degree rotation. For each point *q* in a given array we assign a weight *w(q)* as follows:
-1. if the distance from *q* to the edge (in units given by the array spacing; by 'edge' we mean the outermost set of array points) is less than *outer_border* then *w(q)* is zero;
+Merging begins by translating each output lattice of points from the standard centre back to the appropriate healpix centre, and undoing the 45 degree rotation. For each point *q* in a given lattice we assign a weight *w(q)* as follows:
+1. if the distance from *q* to the edge (in units given by the lattice spacing; by 'edge' we mean the outermost set of lattice points) is less than *outer_border* then *w(q)* is zero;
 2. if this distance is greater than or equal to *inner_border* then *w(q)* is one;
 3. otherwise *w(q)* varies smoothly between these two extremes.
 
-We then create a fine healpixelisation with NSIDE *intermediate_nside*. For each pixel *p* in this healpixelisation and each output glimpse array *a* we find the point *q(a,p)* in *a* that is closest to the centre of *p* (together with its associated weight *w(a,p)*). The pixel *p* is then assigned a kappa value that is the weighted average of the glimpse kappa values at the points *q(a,p)* (as *a* ranges across all glimpse output files), using as weights the *w(a,p)*. Note that since the weights are zero on the edge of *a*, arrays that are distant from *p* will not contribute to the weighted average (as expected). This gives us a healpix map of weighted average kappa values (we also create a healpix map of weights).
+We then create a fine healpixelisation with NSIDE *intermediate_nside*. For each pixel *p* in this healpixelisation and each output glimpse lattice *a* we find the point *q(a,p)* in *a* that is closest to the centre of *p* (together with its associated weight *w(a,p)*). The pixel *p* is then assigned a kappa value that is the weighted average of the glimpse kappa values at the points *q(a,p)* (as *a* ranges across all glimpse output files), using as weights the *w(a,p)*. Note that since the weights are zero on the edge of *a*, lattices that are distant from *p* will not contribute to the weighted average (as expected). This gives us a healpix map of weighted average kappa values (we also create a healpix map of weights).
 
 Two final post-processing steps are performed:
 1. The value and weight maps are downsampled to NSIDE *output_nside*;
@@ -80,8 +80,8 @@ Two final post-processing steps are performed:
 
 | Section | Key | Value |
 | --- | --- | --- |
-| merge | outer_border | Used to specify weights to be assigned to glimpse array points; see above for details. Must be positive. Typical value is 90. Required. |
-| merge | inner_border | Used to specify weights to be assigned to glimpse array points; see above for details. Cannot be less than inner_border. Typical value is 110. Required. |
+| merge | outer_border | Used to specify weights to be assigned to glimpse lattice points; see above for details. Must be positive. Typical value is 90. Required. |
+| merge | inner_border | Used to specify weights to be assigned to glimpse lattice points; see above for details. Cannot be less than inner_border. Typical value is 110. Required. |
 | merge | intermediate_nside | NSIDE of intermediate (fine) healpixelisation when merging; see above for details. Typical value is 2048. Required. |
 | merge | output_nside | NSIDE of healpixelisation used in final output map. Typical value is 1024. (Fun fact: on Earth an NSIDE of 1024 would give pixels about two-thirds the size of Manhattan). Required. |
 | merge | apply_galaxy_mask? | If True, then mask the output map by setting kappa values to zero for pixels containing no source galaxies. Required. |
@@ -94,7 +94,7 @@ This section is used by Glimpse to describe the format of input data (which in o
 | --- | --- | --- |
 | survey | center_ra | This must be set to 180.0 (the RA of the standard centre as described above). |
 | survey | center_dec | This must be set to 0.0 (the DEC of the standard centre as described above). |
-| survey | size | The side length in degrees of the glimpse output array of points. It is optimal to set this to the same value as create_cutouts::cutout_side_in_degrees (which is typically 16). |
+| survey | size | The side length in degrees of the glimpse output lattice of points. It is optimal to set this to the same value as create_cutouts::cutout_side_in_degrees (which is typically 16). |
 | survey | units | Set this to 'degrees'; if another unit is chosen then adjust values in this section accordingly. |
 | survey | hdu | Set this to 1 (this corresponds to the format of the cutout catalogue files). |
 | survey | flip_e2 | Set to true or false depending on the weak lensing shear quote convention used in the input catalogue. Experiment to find the correct value. TODO: verify that we handle properly the 'rotate by 45 degrees' calulation for shear when this setting is 'true' (it works OK when 'false'). TODO: Describe the two quote conventions in more detail. |
@@ -106,7 +106,7 @@ This section is used by Glimpse to describe the format of input data (which in o
 
 #### Section [cosmology]
 
-This section is used by Glimpse.
+This section is used by Glimpse to control the fiducial cosmological model. TODO: Suspect that this is not paid attention to as we are not using source redshifts?
 
 | Section | Key | Value |
 | --- | --- | --- |
@@ -116,16 +116,17 @@ This section is used by Glimpse.
 
 #### Section [field]
 
-This section is used by Glimpse.
+This section is used by Glimpse in part to set the size and scaling of the glimpse output lattice.
 
 | Section | Key | Value |
 | --- | --- | --- |
-| field | units | =arcmin |
-| field | pixel_size | =3.5 |
-| field | padding | =28 |
+| field | units | Set this to 'arcmin'; if another unit is chosen then adjust values in this section accordingly. |
+| field | pixel_size | The grid spacing for the glimpse output lattice, in arcmin. Typical value is 3.5. |
+| field | padding | Number of rows of extra 'padding' lattice elements at the edges of the glimpse output lattice. Typical value is 28. |
 | field | include_flexion | Set this to false (so that second order 'flexion' information is not used). |
 | field | zlens | Set this to -1 (so that source galaxy redshifts are not used). |
 
+With a pixel size of 3.5 arcmin, an output lattice of 16 degrees on a side, and 28 padding elements, we get a glimpse output lattice of 330 points, squared, covering 256 sq deg (so 425 lattice points per sq deg). With outer_border and inner_border set to 90 and 110 respectively, we essentially keep only the central one-ninth of each lattice i.e. 28 sq deg. With the cutout centres based on a healpix NSIDE of 16, each cutout is centred on healpixel of 13 sq deg, so the overlap ratio is 2.1 (= 28/13). Thus the resulting lattice point density is 900 lattice points per sq deg i.e. 0.25 lattice points per sq arcmin. With an out map NSIDE of 1024 each output pixel is 11.8 sq arcmin, for a density of 2.95 lattice points per output pixel.
 
 #### Section [parameters]
 
