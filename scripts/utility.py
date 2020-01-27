@@ -1205,7 +1205,7 @@ def smoothed_step_function(x, x0, x1):
 # See LW's notes p. GL105.
 def one_axis_weight_function(width, outer_border, inner_border):
     import numpy as np
-    assert (outer_border >= 0), "outer_border must be non-negative in one_axis_weight_function"
+    assert (outer_border > 0), "outer_border must be positive in one_axis_weight_function"
     assert (outer_border <= inner_border), "outer_border must not exceed inner_border in one_axis_weight_function"
     assert (width > 2 * inner_border), "inner_border is too large in one_axis_weight_function"
     ret = np.zeros(width)
@@ -1223,7 +1223,7 @@ def one_axis_weight_function(width, outer_border, inner_border):
     return ret
     
 def one_axis_weight_function_test_harness():
-    oawf = one_axis_weight_function(16, 2, 5)
+    oawf = one_axis_weight_function(16, 2, 1)
     for x in oawf:
         print(x)
 
@@ -1476,11 +1476,12 @@ if __name__ == '__main__':
     #to_from_standard_position_test_harness()
     #array_slice_from_job_control_string_test_harness()
     #angular_separation_test_harness()
+    #one_axis_weight_function_test_harness()
    
     
     #kappa_values_in_one_fine_pixel()
     #save_buzzard_truth()
-    plot_several_healpix_maps()
+    #plot_several_healpix_maps()
     #create_test_catalogue()
     #correct_one_shear_catalogue_caller()
     #redshift_histogram()
