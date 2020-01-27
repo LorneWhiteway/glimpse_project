@@ -99,7 +99,7 @@ This section is used by Glimpse to describe the format of input data (which in o
 | survey | size | The side length in degrees of the glimpse output lattice of points. It is optimal to set this to the same value as create_cutouts::cutout_side_in_degrees (which is typically 16). |
 | survey | units | Set this to 'degrees'; if another unit is chosen then adjust values in this section accordingly. |
 | survey | hdu | Set this to 1 (this corresponds to the format of the cutout catalogue files). |
-| survey | flip_e2 | Set to true or false depending on the weak lensing shear quote convention used in the input catalogue. Experiment to find the correct value. TODO: verify that we handle properly the 'rotate by 45 degrees' calulation for shear when this setting is 'true' (it works OK when 'false'). TODO: Describe the two quote conventions in more detail. |
+| survey | flip_e2 | Set to true or false depending on the weak lensing shear quote convention used in the input catalogue. Experiment to find the correct value. TODO: verify that we handle properly the 'rotate by 45 degrees' calculation for shear when this setting is 'true' (it works OK when 'false'). TODO: Describe the two quote conventions in more detail. |
 | survey | ra | Should equal create_cutouts::ra_name. |
 | survey | dec | Should equal create_cutouts::dec_name. |
 | survey | e1 | The name of the first shear field (which must have been mentioned in create_cutouts::shear_names). |
