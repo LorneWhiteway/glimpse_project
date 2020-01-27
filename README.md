@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository contains code to allow [glimpse](https://github.com/CosmoStat/Glimpse) (a mass-mapping algorithm that works on patches of the sky that are assumed to be small and flat) to be run on a larger patch (such as the DES footprint). For more information about glimpse see [glimpse paper](https://arxiv.org/abs/1603.01599).
+This repository contains code to allow [glimpse](https://github.com/CosmoStat/Glimpse) (a mass-mapping algorithm that works on patches of the sky that are assumed to be small and flat) to be run on a larger patch (such as the DES footprint). For more information about glimpse see the [glimpse paper](https://arxiv.org/abs/1603.01599).
 
 The code does this in three steps:
 1. *create_cutouts*: an input weak-lensing catalogue is subdivided into many smaller overlapping sub-catalogues (call each one a 'cutout');
@@ -25,6 +25,8 @@ Example:
 ```
 ./scripts/glimpse_on_curved_sky.py -i ./output/my_job.ini -t create_cutouts
 ```
+
+
 
 ### Configuration file
 
@@ -149,7 +151,7 @@ This section controls the algorithm used by Glimpse.
 Use this command line parameter to subselect only some data for processing.
 
 1. When creating cutouts and when merging, use this to specify that only a subset of all possible cutouts should be handled - this is useful primarily during testing. Use Python slice notation, so that for example `[2000:2100]` would handle only cutouts with 2000 <= id < 2100, while `[::2]` would handle all even-numbered cutouts. Note that ids are zero-based. For cutout creation and merging, job_control is optional; if omitted then all possible cutouts will be handled.
-2. When running glimpse, use this to specify the id of which single cutout is to be processed. Note that ids are zero-based. Required.
+2. When running glimpse, use this to specify the id of which single cutout is to be processed; this will be useful for example in a job script used to run glimpse in parallel. Note that ids are zero-based. In glimpse mode this parameter is required.
 
 ## File names
 
