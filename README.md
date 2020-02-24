@@ -9,6 +9,9 @@ The code does this in three steps:
 2. *run_glimpse*: glimpse is run (possibly in parallel) on each cutout;
 3. *merge*: the separate glimpse results are merged together to create an output convergence map (in healpix format).
 
+	The code also supports a fourth step that may be run at any time:
+4. *status*: display information on what files (cutouts, glimpse output, output merged files) have been produced so far. This is helpful for monitoring progress.
+
 The code is structured so that other mass-mapping algorithms besides glimpse can be handled in the future.
 
 ## Interface
@@ -18,7 +21,7 @@ The primary interface is the Python script `glimpse_on_curved_sky.py` in the `./
 | Option | Meaning |
 | --- | --- |
 | -i | Name of configuration file. See below for details of configuration file format. Required. |
-| -t | Task. One of "create_cutouts", "run_glimpse" or "merge". Required. |
+| -t | Task. One of "create_cutouts", "run_glimpse", "merge" or "status". Required. |
 | -j | Job control. See below for more information. Optional; see below for default behaviour if not provided. |
 
 Example:
@@ -179,6 +182,6 @@ and in the same `for` loop also add the line
 8. cd ./build
 9. make
 
-### Things to know about glimpse:
+### Things to know about glimpse
 1. Command line arguments should be ini file, input catalogue, and output file name (in that order), The input item specifiers '--config', '--data' and '--output' should not be provided (despite what the function help says).
 2. In the ini file, the 'size' argument is the length of the edge of a square. 

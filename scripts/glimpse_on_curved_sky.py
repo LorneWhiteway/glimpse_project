@@ -16,8 +16,8 @@ def run(ini_filename, task, job_control):
     f = Path(ini_filename)
     assert f.is_file(), "ini file {} not found".format(ini_filename)
 
-    tasks = ["create_cutouts", "run_glimpse", "merge"]
-    assert (task in tasks), "task should be one of create_cutouts, run_glimpse or merge"
+    tasks = ["create_cutouts", "run_glimpse", "merge", "status"]
+    assert (task in tasks), "task should be one of create_cutouts, run_glimpse, merge or status"
     
     if task == tasks[0]:
         utility.create_cutouts_caller(ini_filename, job_control)
@@ -25,6 +25,8 @@ def run(ini_filename, task, job_control):
         utility.glimpse_caller(ini_filename, job_control)
     elif task == tasks[2]:
         utility.merge_caller(ini_filename, job_control)
+    elif task == tasks[3]:
+        utility.status_caller(ini_filename)
     
     
 
@@ -41,8 +43,8 @@ if __name__ == '__main__':
         parser = argparse.ArgumentParser(description = "Creates a set of 'cutout' catalogues given one input weak-lensing catalogue.")
 
         parser.add_argument('-i', '--ini_file', type = str, required = True, help = "Input ini file name.")
-        parser.add_argument('-t', '--task', type = str, required = True, help = "Task to be performed; one of create_cutouts, run_glimpse or merge.")
-        parser.add_argument('-j', '--job_control', type = str, required = False, default = "", help = "Numpy slice for which healpixels to process e.g. 2:10:2; default is empty string i.e. all. Enclose in double quotes But for run_glimpse this should just be the job number.")
+        parser.add_argument('-t', '--task', type = str, required = True, help = "Task to be performed; one of create_cutouts, run_glimpse, merge or status.")
+        parser.add_argument('-j', '--job_control', type = str, required = False, default = "", help = "Numpy slice for which healpixels to process e.g. 2:10:2; default is empty string i.e. all. Enclose in double quotes. But for run_glimpse this should just be the job number.")
         
         args = parser.parse_args()
         

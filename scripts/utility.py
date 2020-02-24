@@ -1685,6 +1685,54 @@ def merge_caller(ini_file_name, job_control):
     merge(input_file_spec, outer_border, inner_border, output_file_root, intermediate_nside, output_nside, cutouts_nside, apply_galaxy_mask, input_catalogue, ra_name, dec_name, job_control)
 
 
+# Helper function for 'status' routine
+def report_whether_file_exists(file_description, file_name):
+    import os
+    print("File {}: {} '{}'".format(("exists" if os.path.isfile(file_name) else "DOES NOT exist"), file_description, file_name))
+
+
+def status(directory, ini_file_name):
+    import os
+    import glob
+    
+    # inifile present?
+    report_whether_file_exists("Ini file", ini_file_name)
+    
+    # cutouts present?
+    cutouts_filespec = os.path.join(directory, "*.cat.fits")
+    num_cutouts = len(glob.glob(cutouts_filespec))
+    print("{} cutout file{} present".format(num_cutouts, "" if num_cutouts==1 else "s"))
+    
+    # glimpse outputs present?
+    glimpse_filespec = os.path.join(directory, "*.glimpse.out.fits")
+    glimpse_filelist = glob.glob(glimpse_filespec)
+    if len(glimpse_filelist) > 0:
+        file_size_dir = {}
+        for f in glimpse_filelist:
+            f_size = os.path.getsize(f)
+            if f_size in file_size_dir:
+                file_size_dir[f_size] += 1
+            else:
+                file_size_dir[f_size] = 1
+        for f_size in file_size_dir:
+            print("  {} glimpse output file{} of size {}".format(file_size_dir[f_size], ("" if file_size_dir[f_size]==1 else "s"), f_size))
+        print("{} glimpse output files in total".format(len(glimpse_filelist)))
+    else:
+        print("No glimpse output files")
+        
+    # Merge files present?
+    report_whether_file_exists("Glimpse output values file", os.path.join(directory, "glimpse.merged.values.dat"))
+    report_whether_file_exists("Glimpse output weights file", os.path.join(directory, "glimpse.merged.weights.dat"))
+    
+    
+        
+
+
+def status_caller(ini_file_name):
+    import os
+    directory = os.path.dirname(os.path.abspath(ini_file_name))
+    status(directory, ini_file_name)
+    
 
 
 ######################### End of merge code #########################
