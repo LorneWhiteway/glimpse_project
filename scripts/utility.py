@@ -1688,7 +1688,7 @@ def merge_caller(ini_file_name, job_control):
 # Helper function for 'status' routine
 def report_whether_file_exists(file_description, file_name):
     import os
-    print("File {}: {} '{}'".format(("exists" if os.path.isfile(file_name) else "DOES NOT exist"), file_description, file_name))
+    print("File {} {} '{}'".format(("exists:" if os.path.isfile(file_name) else "DOES NOT exist: no"), file_description, file_name))
 
 def plural_suffix(count):
     return ("" if count==1 else "s")
@@ -1699,12 +1699,15 @@ def status(directory, ini_file_name):
     import glob
     
     # inifile present?
-    report_whether_file_exists("Ini file", ini_file_name)
+    report_whether_file_exists("ini file", ini_file_name)
     
     # cutouts present?
     cutouts_filespec = os.path.join(directory, "*.cat.fits")
     num_cutouts = len(glob.glob(cutouts_filespec))
-    print("{} cutout file{} present".format(num_cutouts, plural_suffix(num_cutouts)))
+    if num_cutouts > 0:
+        print("Files exist: {} cutout file{}".format(num_cutouts, plural_suffix(num_cutouts)))
+    else:
+        print("Files DO NOT exist: no cutout files")
     
     # glimpse outputs present?
     glimpse_filespec = os.path.join(directory, "*.glimpse.out.fits")
@@ -1716,15 +1719,16 @@ def status(directory, ini_file_name):
             if f_size not in file_size_dir:
                 file_size_dir[f_size] = 0
             file_size_dir[f_size] += 1
-        for f_size in file_size_dir:
-            print("  {} glimpse output file{} of size {}".format(file_size_dir[f_size], plural_suffix(file_size_dir[f_size]), f_size))
-        print("{} glimpse output file{} in total".format(len(glimpse_filelist), plural_suffix(len(glimpse_filelist))))
+        file_sizes_string = ""
+        for (i, f_size) in zip(range(len(file_size_dir)), file_size_dir):
+            file_sizes_string += ("" if i==0 else "; ") + "{} file{} of size {}".format(file_size_dir[f_size], plural_suffix(file_size_dir[f_size]), f_size)
+        print("Files exist: {} glimpse output file{} ({})".format(len(glimpse_filelist), plural_suffix(len(glimpse_filelist)), file_sizes_string))
     else:
-        print("No glimpse output files")
+        print("Files DO NOT exist: no glimpse output files")
         
     # Merge files present?
-    report_whether_file_exists("Glimpse output values file", os.path.join(directory, "glimpse.merged.values.dat"))
-    report_whether_file_exists("Glimpse output weights file", os.path.join(directory, "glimpse.merged.weights.dat"))
+    report_whether_file_exists("glimpse output values file", os.path.join(directory, "glimpse.merged.values.dat"))
+    report_whether_file_exists("glimpse output weights file", os.path.join(directory, "glimpse.merged.weights.dat"))
     
     
         
