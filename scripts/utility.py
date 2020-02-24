@@ -1690,6 +1690,9 @@ def report_whether_file_exists(file_description, file_name):
     import os
     print("File {}: {} '{}'".format(("exists" if os.path.isfile(file_name) else "DOES NOT exist"), file_description, file_name))
 
+def plural_suffix(count):
+    return ("" if count==1 else "s")
+
 
 def status(directory, ini_file_name):
     import os
@@ -1701,22 +1704,21 @@ def status(directory, ini_file_name):
     # cutouts present?
     cutouts_filespec = os.path.join(directory, "*.cat.fits")
     num_cutouts = len(glob.glob(cutouts_filespec))
-    print("{} cutout file{} present".format(num_cutouts, "" if num_cutouts==1 else "s"))
+    print("{} cutout file{} present".format(num_cutouts, plural_suffix(num_cutouts)))
     
     # glimpse outputs present?
     glimpse_filespec = os.path.join(directory, "*.glimpse.out.fits")
     glimpse_filelist = glob.glob(glimpse_filespec)
     if len(glimpse_filelist) > 0:
-        file_size_dir = {}
+        file_size_dir = {} # key is file size; value is number of files with that size.
         for f in glimpse_filelist:
             f_size = os.path.getsize(f)
-            if f_size in file_size_dir:
-                file_size_dir[f_size] += 1
-            else:
-                file_size_dir[f_size] = 1
+            if f_size not in file_size_dir:
+                file_size_dir[f_size] = 0
+            file_size_dir[f_size] += 1
         for f_size in file_size_dir:
-            print("  {} glimpse output file{} of size {}".format(file_size_dir[f_size], ("" if file_size_dir[f_size]==1 else "s"), f_size))
-        print("{} glimpse output files in total".format(len(glimpse_filelist)))
+            print("  {} glimpse output file{} of size {}".format(file_size_dir[f_size], plural_suffix(file_size_dir[f_size]), f_size))
+        print("{} glimpse output file{} in total".format(len(glimpse_filelist), plural_suffix(len(glimpse_filelist))))
     else:
         print("No glimpse output files")
         
