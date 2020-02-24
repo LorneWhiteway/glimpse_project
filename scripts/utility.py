@@ -34,7 +34,7 @@ def append_random_shear_to_Buzzard():
     print("Finished calling apply_random_rotation")
     print(list_of_field_names)
     output_filename = "/share/splinter/ucapwhi/glimpse_project/Buzzard_192_with_random.fits"
-    write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns)
+    write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns, True)
     
 
 # See p. GL148
@@ -80,7 +80,7 @@ def correct_one_shear_catalogue(catalogue_filename):
     
     output_filename = catalogue_filename.replace(".fits", ".negative.fits")
     
-    write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns)
+    write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns, True)
     
     
 def glimpse_sign_experiment():
@@ -149,24 +149,85 @@ def kappa_histogram():
     plt.show()
     
 
+def glimpse_output_as_array(glimpse_output_filename):
+    
+    import numpy as np
+    import math
+    
+    (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_filename)
+    n = int(math.sqrt(kappa.shape[0]))
+    return np.reshape(kappa, [n, n])
+    
+    
 
+# See also plot_several_glimpse_outputs, which does something similar...
 def show_glimpse_output_as_image():
 
     import numpy as np
     import math
     import matplotlib.pyplot as plt
 
-    glimpse_output_file = "/share/splinter/ucapwhi/glimpse_project/shear_sign_experiment/output.negative.fits"
-    (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_file)
-    
-    n = int(math.sqrt(kappa.shape[0]))
-    
-    kappa_as_2d_array = np.reshape(kappa, [n, n])
-    
+    glimpse_output_filename = "/share/splinter/ucapwhi/glimpse_project/shear_sign_experiment/output.negative.fits"
+    kappa_as_2d_array = glimpse_output_as_array(glimpse_output_filename)
     plt.imshow(kappa_as_2d_array)
     plt.show()
     
+    
+def define_Buzzard_ten_percent_by_area_subset():
 
+    import healpy as hp
+    import numpy as np
+   
+    centre_ra = 40.0
+    centre_dec = -30.0
+    
+
+    if False:
+        print("Getting data...")
+        (g_ra, g_dec) = get_from_fits_file(buzzard_data_file_name(), ["RA", "DEC"])
+
+        nside = 16
+        
+        print("Getting healpixel ids...")
+        g_ids = hp.ang2pix(nside, g_ra, g_dec, False, True)
+        print("Sorting and removing duplicates...")
+        
+        s = set(g_ids)
+        n_ids = np.array(list(s))
+        n_ids.sort()
+        
+        print("Processing...")
+        
+        (n_ra, n_dec) = hp.pix2ang(nside, n_ids, False, True)
+        
+            
+        
+        n_dist = np.degrees(angular_separation(n_ra, n_dec, centre_ra, centre_dec)) # In degrees
+        
+        num_n_ids = len(n_ids)
+        
+        for r in np.linspace(0.0, 30.0, 31, True): # r in degrees
+            m_ids = n_ids[np.where(n_dist<r)]
+            num_m_ids = len(m_ids)
+            print(r, num_m_ids, num_n_ids, num_m_ids/num_n_ids)
+    
+    if True:
+        
+        list_of_field_names = ["RA", "DEC", "E1", "E2", "G1", "G2", "k_orig", "true_z", "E1_RANDOM", "E2_RANDOM"]
+        
+        print("Getting data...")
+        (ra, dec, e1, e2, g1, g2, k, z, e1r, e2r) = get_from_fits_file(buzzard_data_file_name(), list_of_field_names)
+        
+        r = 10.0 # In degrees
+        print("Filtering with r = {} degrees...".format(r))
+        n_dist = np.degrees(angular_separation(ra, dec, centre_ra, centre_dec)) # In degrees
+        filter = np.where(n_dist < r)
+        
+        print("Writing...")
+        output_filename = "/share/testde/ucapnje/buzzard_desy3_marco/Buzzard_192_reduced.fits"
+        write_to_fits_file(output_filename, list_of_field_names, [ra[filter], dec[filter], e1[filter], e2[filter], g1[filter], g2[filter], k[filter], z[filter], e1r[filter], e2r[filter]], False)
+        
+        
 
 
 
@@ -182,30 +243,28 @@ def add_dummy_redshift_column(file_name):
     list_of_field_names.append("DUMMY_Z")
     list_of_data_columns.append(dummy_z)
     
-    write_to_fits_file(file_name.replace(".fits", ".new.fits"), list_of_field_names, list_of_data_columns)
+    write_to_fits_file(file_name.replace(".fits", ".new.fits"), list_of_field_names, list_of_data_columns, True)
     
 
-def save_buzzard_truth():
+def save_buzzard_truth(buzzard_data_filename, output_filename):
 
     import healpy as hp
     import numpy as np
     
     do_nest = False
     
-    nside = 512
+    nside = 1024
     num_healpixels = hp.nside2npix(nside)
     sums = np.zeros(num_healpixels)
     count = np.zeros(num_healpixels)
     
-    (ra, dec, kappa) = get_from_fits_file(buzzard_data_file_name(), ["RA", "DEC", "k_orig"])
+    (ra, dec, kappa) = get_from_fits_file(buzzard_data_filename, ["RA", "DEC", "k_orig"])
     num_buzzard_data = len(ra)
     print("num_buzzard_data = {}".format(num_buzzard_data))
     id = hp.ang2pix(nside, ra, dec, do_nest, lonlat=True)
-    i = 0
-    for (this_id, this_kappa) in zip(id, kappa):
+    for (i, this_id, this_kappa) in zip(range(num_buzzard_data), id, kappa):
         sums[this_id] += this_kappa
         count[this_id] += 1
-        i += 1
         if i % 1000000 == 0:
             print("{} of {}".format(i, num_buzzard_data))
         
@@ -214,8 +273,12 @@ def save_buzzard_truth():
     average_values = np.divide(sums, count, out=np.zeros_like(count, dtype=float), where=count!=0.0)
     
     # Save
-    filename = "/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.nside" + str(nside) + "_truth.dat"
-    write_healpix_array_to_file(average_values, filename, do_nest)
+    write_healpix_array_to_file(average_values, output_filename, do_nest)
+    
+    
+def run_save_buzzard_truth():
+    save_buzzard_truth(buzzard_reduced_data_file_name(), "/share/splinter/ucapwhi/glimpse_project/experiments/truth/true_kappa.dat")
+
     
 
 # One-time test; see p GL97.
@@ -250,15 +313,7 @@ def create_test_catalogue():
     z = z[filter]
     list_of_data_columns = [ra, dec, e1, e2, z]
     test_catalogue_filename = "/share/splinter/ucapwhi/glimpse_project/test/catalogue.fits"
-    write_to_fits_file(test_catalogue_filename, list_of_field_names, list_of_data_columns)
-    
-    
-    
-    
-    
-    
-    
-    
+    write_to_fits_file(test_catalogue_filename, list_of_field_names, list_of_data_columns, True)
     
     
     
@@ -295,10 +350,10 @@ def array_slice_from_job_control_string_test_harness():
 
 
 
-# Returns the original shape, then the flattened ra, dec and values (in that order).
-def get_glimpse_output_data(glimpse_output_file):
+# Returns the flattened ra, dec and kappa (in that order).
+def get_glimpse_output_data(glimpse_output_filename):
     import astropy.io.fits as pyfits
-    pyfile = pyfits.open(glimpse_output_file)
+    pyfile = pyfits.open(glimpse_output_filename)
     ra = pyfile[1].data
     dec = pyfile[2].data
     kappa = pyfile[0].data
@@ -338,6 +393,11 @@ def kappa_values_in_one_fine_pixel():
 #"RA", "DEC", "true_z", "E1", "E2", "G1", "G2", "k_orig"
 def buzzard_data_file_name():
     return '/share/testde/ucapnje/buzzard_desy3_marco/Buzzard_192.fits'
+    
+#"RA", "DEC", "true_z", "E1", "E2", "G1", "G2", "k_orig"
+def buzzard_reduced_data_file_name():
+    return '/share/testde/ucapnje/buzzard_desy3_marco/Buzzard_192_reduced.fits'
+
 
 #"RA", "DEC", "E1", "E2", "E1_RANDOM", "E2_RANDOM", "DUMMY_Z"
 def metacal_data_file_name():
@@ -357,9 +417,10 @@ def get_from_fits_file(file_name, what_to_get):
 
 
 
-def write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns):
+def write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns, verbose):
     import astropy.io.fits as pyfits
-    print("Writing to {}...".format(output_filename))
+    if verbose:
+        print("Writing to {}...".format(output_filename))
     column_info = []
     for (field_name, data_column) in zip(list_of_field_names, list_of_data_columns):
         column_info.append(pyfits.Column(name=field_name, format='D', array=data_column))
@@ -703,14 +764,14 @@ def plot_several_healpix_maps():
     titles = []
 
     # 1. maps from healpix files
-    path = "/share/splinter/ucapwhi/glimpse_project/runs/"
-    filenames = ["Mcal_signal/glimpse.merged.values.dat", "Buzzard_192_signal/glimpse.merged.values.dat"]
+    path = "/share/splinter/ucapwhi/glimpse_project/experiments/"
+    filenames = ["Buzzard_192_reduced_signal/glimpse.merged.values.dat"]
         
     
-    weight_maps = []
+    weight_maps = [0]
     for i in weight_maps:
         # Also show weights
-        filenames.append(filenames[i].replace("_values", "_weights"))
+        filenames.append(filenames[i].replace(".values", ".weights"))
         
     masked_maps = []
     for i in masked_maps:
@@ -720,7 +781,8 @@ def plot_several_healpix_maps():
     for f in filenames:
         print("Using file {}".format(f))
         maps.append(hp.read_map(path + f, verbose=False))
-        titles.append(f.replace("/glimpse.merged.values.dat",""))
+        #titles.append(f.replace("/glimpse.merged.values.dat",""))
+        titles.append(f)
         
     # 2. other maps
         
@@ -776,16 +838,181 @@ def plot_several_healpix_maps():
             rot = (75.0, -55.0, 0.0)
             hp.gnomview(map, fig=i, rot=rot, title=title, reso=3.3, xsize=400) # , max=0.104, min=-0.0264)
         else:
-            rot = (20.0, -20.0, 0.0)
+            #rot = (20.0, -20.0, 0.0)
+            rot = (40.0, -30.0, 0.0)
             map = np.where(np.abs(map)<1e-7, np.nan, map)
-            #map = (0.2 * (map - np.min(map)) / (np.max(map) - np.min(map))) - 0.1
-            #hp.orthview(map, fig=i, rot=rot, title=title, xsize=400, badcolor="grey", half_sky=True) # max=0.1, min=-0.1, 
-            hp.orthview(map, rot=rot, title=title, xsize=400, badcolor="grey", half_sky=True, sub=((1,2,1) if (i==0) else (1,2,2))) # max=0.1, min=-0.1, 
+            hp.orthview(map, rot=rot, title=title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1)) # max=0.1, min=-0.1, 
         
         hp.graticule(dpar=30.0)
     
     plt.show()
     
+def plot_several_glimpse_outputs():
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    
+    fig = plt.figure(figsize=(12,12))
+    titles = []
+    
+    path = "/share/splinter/ucapwhi/glimpse_project/experiments/"
+    id = 2148
+    filenames = ["A/{}.glimpse.out.fits".format(id), "B/{}.glimpse.out.fits".format(id), "C/{}.glimpse.out.fits".format(id)]
+    
+    
+    
+    for (f, i) in zip(filenames, range(len(filenames))):
+    
+        kappa_as_2d_array = glimpse_output_as_array(path + f)
+        ax = fig.add_subplot(1, len(filenames), i+1)
+        ax.imshow(kappa_as_2d_array)
+        ax.title.set_text(f)
+        
+
+    plt.show()
+        
+
+
+
+    
+    
+    
+# 'experiment' will be a string such as "B".
+
+def experiment_label(experiment):
+    if experiment == "A":
+        return "$\lambda$=3"
+    if experiment == "B":
+        return "nreweights=5"
+    if experiment == "C":
+        return "$\lambda$=5"
+    if experiment == "D":
+        return "nscales=3"
+    if experiment == "E":
+        return "$\lambda$=2"
+    if experiment == "F":
+        return "niter=1000"
+    if experiment == "G":
+        return "nrandom=2000"
+    if experiment == "H":
+        return "in=100,out=80"
+    if experiment == "I":
+        return "nscales=5"
+    if experiment == "J":
+        return "nscales=9"
+    if experiment == "K":
+        return "$\lambda$=4"
+    if experiment == "L":
+        return "$\lambda$=1"
+    if experiment == "M":
+        return "in=80,out=60"
+    if experiment == "N":
+        return "flip_e2=F"
+        
+
+
+
+def experiment_results_filename(experiment):
+    return "/share/splinter/ucapwhi/glimpse_project/experiments/{}/glimpse.merged.values.dat".format(experiment)
+
+
+def Buzzard_reduced_truth_map_filename():
+    return "/share/splinter/ucapwhi/glimpse_project/experiments/truth/true_kappa.dat"
+    
+    
+def pixel_histograms(list_of_maps, list_of_titles):
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    plt.yscale('log')
+    for (m, t) in zip(list_of_maps, list_of_titles):
+        (h, b) = np.histogram(m, bins=100, range=(-0.04, 0.06))
+        plt.step(0.5*(b[1:]+b[:-1]), h/np.max(h), where="mid", label=t)
+    plt.legend()
+    plt.xlabel("$\kappa$")
+    plt.ylabel("Normalised Pixel Count")
+    plt.show()
+        
+def show_pixel_histograms():
+
+    import healpy as hp
+    
+    list_of_maps = []
+    list_of_titles = []
+    filter = Buzzard_reduced_truth_filter()
+    simulation_truth = hp.read_map(Buzzard_reduced_truth_map_filename(), verbose=False)[filter]
+    list_of_maps.append(simulation_truth)
+    list_of_titles.append("truth")
+    for experiment in ["E", "A", "C"]:
+        experimental_result = hp.read_map(experiment_results_filename(experiment), verbose=False)[filter]
+        list_of_maps.append(experimental_result)
+        list_of_titles.append(experiment_label(experiment))
+    pixel_histograms(list_of_maps, list_of_titles)
+    
+    
+
+def experiment_tests():
+    
+    import healpy as hp
+    import numpy as np
+    
+    filter = Buzzard_reduced_truth_filter()
+    
+    print("{}\t\t\t{}\t{}\t{}".format("Run", "Pearson r", "Pixel res", "Var ratio"))
+
+    simulation_truth = hp.read_map(Buzzard_reduced_truth_map_filename(), verbose=False)[filter]
+    for experiment in ["L", "E", "A", "K", "C", "N"]:
+        experimental_result = hp.read_map(experiment_results_filename(experiment), verbose=False)[filter]
+        corr = np.corrcoef(np.column_stack((simulation_truth, experimental_result)), rowvar=False)[0,1] # Equation 32 in 1801.08945
+        pixel_residual = np.sqrt(np.mean((experimental_result-simulation_truth)**2)) # Equation 34 in 1801.08945
+        var_ratio = np.var(experimental_result)/np.var(simulation_truth) # Equation 36 in 1801.08945
+        print("{}\t\t{:10.5f}\t{:10.5f}\t{:10.5f}".format(experiment_label(experiment), corr, pixel_residual, var_ratio))
+        
+def Buzzard_reduced_truth_filter():
+
+    import numpy as np
+    import healpy as hp
+    
+    simulation_truth = hp.read_map(Buzzard_reduced_truth_map_filename(), verbose=False)
+    return np.where(np.abs(simulation_truth) > 1e-12)
+        
+def corr_graph():
+
+    import numpy as np
+    import healpy as hp
+    from chainconsumer import ChainConsumer
+    
+    
+    
+    filter = Buzzard_reduced_truth_filter()
+    
+    
+    
+    c = ChainConsumer()
+    
+    list_of_chains = []
+    list_of_names = []
+    
+    simulation_truth = hp.read_map(Buzzard_reduced_truth_map_filename(), verbose=False)[filter]
+    list_of_chains.append(simulation_truth)
+    list_of_names.append("truth")
+    
+    for experiment in ["A", "B"]:
+        experiment_result = hp.read_map(experiment_results_filename(experiment), verbose=False)[filter]
+        list_of_chains.append(experiment_result)
+        list_of_names.append(experiment)
+        
+    c.add_chain(list_of_chains, parameters=list_of_names)
+    c.configure(smooth=False, colors="#673AB7")
+
+    fig = c.plotter.plot(display=True)
+    
+
+    
+    
+    
+
 
 
 
@@ -1127,7 +1354,7 @@ def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_na
                             field_names.append(f)
                             data_columns.append(data[f][joint_filter])
                            
-                        write_to_fits_file(output_filename, field_names, data_columns)
+                        write_to_fits_file(output_filename, field_names, data_columns, True)
 
 
 
@@ -1478,10 +1705,14 @@ if __name__ == '__main__':
     #angular_separation_test_harness()
     #one_axis_weight_function_test_harness()
    
-    
+    #define_Buzzard_ten_percent_by_area_subset()
     #kappa_values_in_one_fine_pixel()
-    #save_buzzard_truth()
+    #run_save_buzzard_truth()
     #plot_several_healpix_maps()
+    #plot_several_glimpse_outputs()
+    experiment_tests()
+    #show_pixel_histograms()
+    #corr_graph()
     #create_test_catalogue()
     #correct_one_shear_catalogue_caller()
     #redshift_histogram()
