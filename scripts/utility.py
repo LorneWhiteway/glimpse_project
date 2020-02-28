@@ -1382,6 +1382,11 @@ def create_cutouts_caller(ini_file_name, job_control):
 
 ######################### End of create_cutouts code #########################
 
+
+
+
+
+
 ######################### Start of glimpse_caller code #########################
 
 def glimpse_caller(ini_file_name, job_id):
@@ -1402,7 +1407,7 @@ def glimpse_caller(ini_file_name, job_id):
     id_list.sort()
     this_healpix_pixel_id = id_list[int(job_id)]
     
-    print("Healpixel id = {}...".format(this_healpix_pixel_id))
+    print("Healpixel id = {}...".format(this_healpix_pixel_id), flush=True)
     
     this_healpix_id_as_string = str(this_healpix_pixel_id).zfill(4)
     
@@ -1684,6 +1689,16 @@ def merge_caller(ini_file_name, job_control):
     
     merge(input_file_spec, outer_border, inner_border, output_file_root, intermediate_nside, output_nside, cutouts_nside, apply_galaxy_mask, input_catalogue, ra_name, dec_name, job_control)
 
+######################### End of merge code #########################
+
+
+
+
+
+
+
+######################### Start of status code #########################
+
 
 # Helper function for 'status' routine
 def report_whether_file_exists(file_description, file_name):
@@ -1730,9 +1745,6 @@ def status(directory, ini_file_name):
     report_whether_file_exists("glimpse output values file", os.path.join(directory, "glimpse.merged.values.dat"))
     report_whether_file_exists("glimpse output weights file", os.path.join(directory, "glimpse.merged.weights.dat"))
     
-    
-        
-
 
 def status_caller(ini_file_name):
     import os
@@ -1740,8 +1752,8 @@ def status_caller(ini_file_name):
     status(directory, ini_file_name)
     
 
+######################### End of status code #########################
 
-######################### End of merge code #########################
 
 
     
