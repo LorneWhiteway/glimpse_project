@@ -1358,12 +1358,13 @@ def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_na
 
 
 
-def create_cutouts_caller(ini_file_name, job_control):
+def create_cutouts_caller(directory, job_control):
 
     import configparser
     import os
     
     config = configparser.ConfigParser()
+    ini_file_name = os.path.abspath(os.path.join(directory, "control.ini"))
     config.read(ini_file_name)
 
     input_catalogue = config["create_cutouts"].get("input_catalogue")
@@ -1389,7 +1390,7 @@ def create_cutouts_caller(ini_file_name, job_control):
 
 ######################### Start of glimpse_caller code #########################
 
-def glimpse_caller(ini_file_name, job_id):
+def glimpse_caller(directory, job_id):
 
     import glob
     import subprocess
@@ -1397,10 +1398,11 @@ def glimpse_caller(ini_file_name, job_id):
     import os
     
     config = configparser.ConfigParser()
+    ini_file_name = os.path.abspath(os.path.join(directory, "control.ini"))
     config.read(ini_file_name)
     
-    output_directory = os.path.dirname(os.path.abspath(ini_file_name))
-    exe_file = config["project"].get("glimpse_executable")
+    output_directory = os.path.dirname(ini_file_name)
+    exe_file_name = config["project"].get("glimpse_executable")
     
     glimpse_cat_file_pattern = os.path.join(output_directory, "*.cat.fits")
     id_list = [int((os.path.basename(f)).split(".")[0]) for f in glob.glob(glimpse_cat_file_pattern)]
@@ -1411,11 +1413,10 @@ def glimpse_caller(ini_file_name, job_id):
     
     this_healpix_id_as_string = str(this_healpix_pixel_id).zfill(4)
     
-    ini_file = os.path.abspath(ini_file_name)
-    cat_file = os.path.join(output_directory, this_healpix_id_as_string + ".cat.fits")
-    out_file = os.path.join(output_directory, this_healpix_id_as_string + ".glimpse.out.fits")
+    cat_file_name = os.path.join(output_directory, this_healpix_id_as_string + ".cat.fits")
+    out_file_name = os.path.join(output_directory, this_healpix_id_as_string + ".glimpse.out.fits")
 
-    subprocess.run([exe_file, ini_file, cat_file, out_file])
+    subprocess.run([exe_file_name, ini_file_name, cat_file_name, out_file_name])
 
     print("Finished.")
     
@@ -1660,12 +1661,13 @@ def merge(input_file_spec, outer_border, inner_border, output_file_root, interme
 
 
 
-def merge_caller(ini_file_name, job_control):
+def merge_caller(directory, job_control):
     
     import configparser
     import os
     
     config = configparser.ConfigParser()
+    ini_file_name = os.path.abspath(os.path.join(directory, "control.ini"))
     config.read(ini_file_name)
     
     outer_border = int(config["merge"].get("outer_border"))
@@ -1673,7 +1675,6 @@ def merge_caller(ini_file_name, job_control):
     intermediate_nside = int(config["merge"].get("intermediate_nside"))
     output_nside = int(config["merge"].get("output_nside"))
     
-    directory = os.path.dirname(os.path.abspath(ini_file_name))
     input_file_spec = os.path.join(directory, "*.glimpse.out.fits")
     output_file_root = os.path.join(directory, "")
     
@@ -1709,11 +1710,12 @@ def plural_suffix(count):
     return ("" if count==1 else "s")
 
 
-def status(directory, ini_file_name):
+def status(directory):
     import os
     import glob
     
     # inifile present?
+    ini_file_name = os.path.abspath(os.path.join(directory, "control.ini"))
     report_whether_file_exists("ini file", ini_file_name)
     
     # cutouts present?
@@ -1742,14 +1744,14 @@ def status(directory, ini_file_name):
         print("Files DO NOT exist: no glimpse output files")
         
     # Merge files present?
-    report_whether_file_exists("glimpse output values file", os.path.join(directory, "glimpse.merged.values.dat"))
-    report_whether_file_exists("glimpse output weights file", os.path.join(directory, "glimpse.merged.weights.dat"))
+    report_whether_file_exists("glimpse output values file", os.path.abspath(os.path.join(directory, "glimpse.merged.values.dat")))
+    report_whether_file_exists("glimpse output weights file", os.path.abspath(os.path.join(directory, "glimpse.merged.weights.dat")))
     
 
-def status_caller(ini_file_name):
+def status_caller(directory):
     import os
-    directory = os.path.dirname(os.path.abspath(ini_file_name))
-    status(directory, ini_file_name)
+    #directory = os.path.dirname(os.path.abspath(ini_file_name))
+    status(directory)
     
 
 ######################### End of status code #########################

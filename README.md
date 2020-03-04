@@ -20,20 +20,20 @@ The primary interface is the Python script `glimpse_on_curved_sky.py` in the `./
 
 | Option | Meaning |
 | --- | --- |
-| -i | Name of configuration file. See below for details of configuration file format. Required. |
+| -d | Directory containing input file(s) and to which output files will be written. Required. |
 | -t | Task. One of "create_cutouts", "run_glimpse", "merge" or "status". Required. |
 | -j | Job control. See below for more information. Optional; see below for default behaviour if not provided. |
 
 Example:
 ```
-./scripts/glimpse_on_curved_sky.py -i ./output/my_job.ini -t create_cutouts
+./scripts/glimpse_on_curved_sky.py -d ./output/ -t create_cutouts
 ```
 
 
 
 ### Configuration file
 
-The configuration file should be in [standard INI file format](https://en.wikipedia.org/wiki/INI_file). Below we describe the various sections that should be provided.
+You must provide an input configuration file. The file should be called `control.ini` and should be located in the *directory* specified on the command line. The configuration file should be in [standard INI file format](https://en.wikipedia.org/wiki/INI_file). Below we describe the various sections that should be provided.
 
 #### Section [project]
 
@@ -158,8 +158,8 @@ Use this command line parameter to subselect only some data for processing.
 
 ## File names
 
-1. At run time the user specifies an ini file. All intermediate and output files are created in the same directory as the ini file (so it makes sense to give this directory a name reflecting its purpose).
-2. The ini file can have any name (but glimpse.ini is traditional).
+1. At run time the user specifies a directory that will contain all input, intermediate and output files (so it makes sense to give this directory a name reflecting its purpose).
+2. The ini file must be called `control.ini`.
 3. Cutout catalogues will have names `{id}.cat.fits` where `{id}` is the id of the cutout (= healpix id of central point).
 4. Output files from glimpse will have names `{id}.glimpse.out.fits`.
 5. Final output value and weight files will be called `glimpse.merged.values.dat` and `glimpse.merged.weights.dat` respectively.
