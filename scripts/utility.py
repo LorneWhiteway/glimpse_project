@@ -764,11 +764,11 @@ def plot_several_healpix_maps():
     titles = []
 
     # 1. maps from healpix files
-    path = "/share/splinter/ucapwhi/glimpse_project/experiments/"
-    filenames = ["Buzzard_192_reduced_signal/glimpse.merged.values.dat"]
+    path = "/share/splinter/ucapwhi/glimpse_project/runs/"
+    filenames = ["Buzzard_192_signal_lambda_1/glimpse.merged.values.dat", "Buzzard_192_signal_lambda_2/glimpse.merged.values.dat", "Buzzard_192_signal/glimpse.merged.values.dat", "Buzzard_192_signal_lambda_4/glimpse.merged.values.dat", "Buzzard_192_signal_lambda_5/glimpse.merged.values.dat", "Buzzard_192_signal/truth.values.dat"]
         
     
-    weight_maps = [0]
+    weight_maps = []
     for i in weight_maps:
         # Also show weights
         filenames.append(filenames[i].replace(".values", ".weights"))
@@ -781,8 +781,8 @@ def plot_several_healpix_maps():
     for f in filenames:
         print("Using file {}".format(f))
         maps.append(hp.read_map(path + f, verbose=False))
-        #titles.append(f.replace("/glimpse.merged.values.dat",""))
-        titles.append(f)
+        titles.append(f.replace("/glimpse.merged.values.dat","").replace("Buzzard_192_signal/truth.values.dat", "Truth").replace("Buzzard_192_signal/", "Buzzard_192_signal_lambda_3/"))
+        #titles.append(f)
         
     # 2. other maps
         
@@ -813,10 +813,10 @@ def plot_several_healpix_maps():
         
 
     # To smooth a map, include in maps_to_smooth the index of the map (i.e. the map's index in the array 'maps') 
-    maps_to_smooth = []
+    maps_to_smooth = [5]
     for i in maps_to_smooth:
         one_arcmin_in_radians = 0.000290888
-        smoothing_scale_in_arcmin = 1.0
+        smoothing_scale_in_arcmin = 5.0
         maps[i] = hp.smoothing(maps[i], sigma = smoothing_scale_in_arcmin * one_arcmin_in_radians)
         titles[i] += " smoothed at {} arcmin".format(smoothing_scale_in_arcmin)
     
@@ -832,12 +832,13 @@ def plot_several_healpix_maps():
     for map, title, i in zip(maps, titles, range(len(maps))):
         if False:
             hp.mollview(map, fig=i, title=title)
-        elif False:
+        elif True:
             #rot = (326.25, 12.024699, 0.0)
             #rot = (180.0, 0.0, 0.0)
             rot = (75.0, -55.0, 0.0)
-            hp.gnomview(map, fig=i, rot=rot, title=title, reso=3.3, xsize=400) # , max=0.104, min=-0.0264)
-        else:
+            #hp.gnomview(map, fig=i, rot=rot, title=title, reso=3.3, xsize=400) # , max=0.104, min=-0.0264)
+            hp.gnomview(map, rot=rot, title=title, reso=3.3, xsize=400, sub=(2,3,i+1),min=-0.035, max=0.061) # , max=0.104, min=-0.0264)
+        elif False:
             #rot = (20.0, -20.0, 0.0)
             rot = (40.0, -30.0, 0.0)
             map = np.where(np.abs(map)<1e-7, np.nan, map)
@@ -1776,9 +1777,9 @@ if __name__ == '__main__':
     #define_Buzzard_ten_percent_by_area_subset()
     #kappa_values_in_one_fine_pixel()
     #run_save_buzzard_truth()
-    #plot_several_healpix_maps()
+    plot_several_healpix_maps()
     #plot_several_glimpse_outputs()
-    experiment_tests()
+    #experiment_tests()
     #show_pixel_histograms()
     #corr_graph()
     #create_test_catalogue()
