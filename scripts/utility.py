@@ -758,7 +758,7 @@ def plot_several_healpix_maps():
     import numpy as np
     import matplotlib.pyplot as plt
     
-    nside = 1024
+    nside = 1024 # Needed only in the 'other maps' section...
 
     maps = []
     titles = []
@@ -813,13 +813,12 @@ def plot_several_healpix_maps():
         
 
     # To smooth a map, include in maps_to_smooth the index of the map (i.e. the map's index in the array 'maps') 
-    maps_to_smooth = [5]
+    maps_to_smooth = []
     for i in maps_to_smooth:
         one_arcmin_in_radians = 0.000290888
         smoothing_scale_in_arcmin = 5.0
         maps[i] = hp.smoothing(maps[i], sigma = smoothing_scale_in_arcmin * one_arcmin_in_radians)
         titles[i] += " smoothed at {} arcmin".format(smoothing_scale_in_arcmin)
-    
     
     if False:
         # Show diff between maps[0] and maps[1]
@@ -829,23 +828,22 @@ def plot_several_healpix_maps():
         titles.append("Percentage difference")
     
     plt.figure(figsize=(12,7))
+    cmap=plt.get_cmap('inferno')
     for map, title, i in zip(maps, titles, range(len(maps))):
         if False:
             hp.mollview(map, fig=i, title=title)
-        elif True:
-            #rot = (326.25, 12.024699, 0.0)
-            #rot = (180.0, 0.0, 0.0)
-            rot = (75.0, -55.0, 0.0)
-            #hp.gnomview(map, fig=i, rot=rot, title=title, reso=3.3, xsize=400) # , max=0.104, min=-0.0264)
-            hp.gnomview(map, rot=rot, title=title, reso=3.3, xsize=400, sub=(2,3,i+1),min=-0.035, max=0.061) # , max=0.104, min=-0.0264)
         elif False:
-            #rot = (20.0, -20.0, 0.0)
+            rot = (75.0, -55.0, 0.0)
+            hp.gnomview(map, rot=rot, title=title, reso=3.3, xsize=400, sub=(2,3,i+1), min=-0.035, max=0.061)
+        elif True:
             rot = (40.0, -30.0, 0.0)
-            map = np.where(np.abs(map)<1e-7, np.nan, map)
-            hp.orthview(map, rot=rot, title=title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1)) # max=0.1, min=-0.1, 
+            map = np.where(np.abs(map)<1e-7,  hp.UNSEEN, map)
+            hp.orthview(map, rot=rot, title=title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1), cmap=cmap) # max=0.1, min=-0.1, 
         
         hp.graticule(dpar=30.0)
     
+    if False:
+        plt.savefig("./plot.png")
     plt.show()
     
 def plot_several_glimpse_outputs():
