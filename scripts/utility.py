@@ -167,7 +167,7 @@ def show_glimpse_output_as_image():
     import math
     import matplotlib.pyplot as plt
 
-    glimpse_output_filename = "/share/splinter/ucapwhi/glimpse_project/shear_sign_experiment/output.negative.fits"
+    glimpse_output_filename = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/2277.glimpse.out.fits"
     kappa_as_2d_array = glimpse_output_as_array(glimpse_output_filename)
     plt.imshow(kappa_as_2d_array)
     plt.show()
@@ -316,6 +316,41 @@ def create_test_catalogue():
     write_to_fits_file(test_catalogue_filename, list_of_field_names, list_of_data_columns, True)
     
     
+def weight_test():
+    import healpy as hp
+    print(hp.ang2pix(16, 30, -30, False, True))
+    
+    
+def set_weights_in_catalogue_file():
+    
+    import numpy as np
+    
+    input_filename = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/2277.cat.fits"
+    (ra, dec, e1, e2, w) = get_from_fits_file(input_filename, ["RA", "DEC", "E1", "E2", "W"])
+    
+    ones = np.ones(len(ra)) # To be used for redshift
+    
+    output_filename = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/A/2277.cat.fits"
+    write_to_fits_file(output_filename, ["RA", "DEC", "E1", "E2", "W", "DUMMY_Z"], (ra, dec, e1, e2, ones, ones), True)
+    
+    output_filename = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/B/2277.cat.fits"
+    write_to_fits_file(output_filename, ["RA", "DEC", "E1", "E2", "W", "DUMMY_Z"], (ra, dec, e1, e2, ones*10.0, ones), True)
+    
+    output_filename = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/C/2277.cat.fits"
+    write_to_fits_file(output_filename, ["RA", "DEC", "E1", "E2", "W", "DUMMY_Z"], (ra, dec, e1, e2, ones*10.0, ones), True)
+    
+    output_filename = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/D/2277.cat.fits"
+    write_to_fits_file(output_filename, ["RA", "DEC", "E1", "E2", "DUMMY_Z"], (ra, dec, e1, e2, ones), True)
+    
+    output_filename = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/E/2277.cat.fits"
+    write_to_fits_file(output_filename, ["RA", "DEC", "E1", "E2", "W", "DUMMY_Z"], (ra, dec, e1, e2, w, ones), True)
+    
+    output_filename = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/F/2277.cat.fits"
+    write_to_fits_file(output_filename, ["RA", "DEC", "E1", "E2", "W", "DUMMY_Z"], (ra, dec, e1, e2, w / np.average(w), ones), True)
+    
+    
+    
+    
     
     
 
@@ -404,7 +439,8 @@ def metacal_data_file_name():
     return '/share/testde/ucapnje/year3_des/Mcal_0.2_1.3.fits'
     
     
-# 'what_to_get' should be a list of field names (case insensitive)
+# 'what_to_get' should be a list of field names (case insensitive).
+# Returns a tuple of arrays.
 def get_from_fits_file(file_name, what_to_get):
     import astropy.io.fits as pyfits
     res = []
@@ -765,7 +801,7 @@ def plot_several_healpix_maps():
 
     # 1. maps from healpix files
     path = "/share/splinter/ucapwhi/glimpse_project/runs/"
-    filenames = ["Buzzard_192_signal_lambda_1/glimpse.merged.values.dat", "Buzzard_192_signal_lambda_2/glimpse.merged.values.dat", "Buzzard_192_signal/glimpse.merged.values.dat", "Buzzard_192_signal_lambda_4/glimpse.merged.values.dat", "Buzzard_192_signal_lambda_5/glimpse.merged.values.dat", "Buzzard_192_signal/truth.values.dat"]
+    filenames = ["202005_Mcal_lambda_3/glimpse.merged.values.dat", "Mcal_signal/glimpse.merged.values.dat"]
         
     
     weight_maps = []
@@ -829,16 +865,16 @@ def plot_several_healpix_maps():
     
     plt.figure(figsize=(12,7))
     cmap=plt.get_cmap('inferno')
-    for map, title, i in zip(maps, titles, range(len(maps))):
+    for this_map, this_title, i in zip(maps, titles, range(len(maps))):
+        this_map = np.where(np.abs(this_map)<1e-7,  hp.UNSEEN, this_map)
         if False:
-            hp.mollview(map, fig=i, title=title)
+            hp.mollview(this_map, title=this_title, cmap=cmap) #fig=i
         elif False:
             rot = (75.0, -55.0, 0.0)
-            hp.gnomview(map, rot=rot, title=title, reso=3.3, xsize=400, sub=(2,3,i+1), min=-0.035, max=0.061)
+            hp.gnomview(this_map, rot=rot, title=this_title, reso=3.3, xsize=400, sub=(2,3,i+1), min=-0.035, max=0.061)
         elif True:
             rot = (40.0, -30.0, 0.0)
-            map = np.where(np.abs(map)<1e-7,  hp.UNSEEN, map)
-            hp.orthview(map, rot=rot, title=title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1), cmap=cmap) # max=0.1, min=-0.1, 
+            hp.orthview(this_map, rot=rot, title=this_title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1), cmap=cmap, min=-0.03, max=0.03) # max=0.1, min=-0.1, 
         
         hp.graticule(dpar=30.0)
     
@@ -851,21 +887,39 @@ def plot_several_glimpse_outputs():
     import numpy as np
     import matplotlib.pyplot as plt
     
+    cmap = plt.get_cmap('inferno')
     fig = plt.figure(figsize=(12,12))
+    num_rows_of_subplots = 2
+    
+    
     titles = []
     
-    path = "/share/splinter/ucapwhi/glimpse_project/experiments/"
-    id = 2148
-    filenames = ["A/{}.glimpse.out.fits".format(id), "B/{}.glimpse.out.fits".format(id), "C/{}.glimpse.out.fits".format(id)]
+    if False:
+        path = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/"
+        id = 2277
+        filenames = ["{}/{}.glimpse.out.fits".format(letter, id) for letter in ["A", "B", "C", "D", "E", "F"]]
+    else:
+        path = "/share/splinter/ucapwhi/glimpse_project/runs/Mcal_signal/"
+        id = [2277, 2278, 2279, 2280, 2281, 2282]
+        filenames = ["{}.glimpse.out.fits".format(id) for id in [2277, 2278, 2279, 2280, 2281, 2282]]
+    
+    
+    (vmin, vmax) = (10e10, -10e10)
+    
+    for f in filenames:
+        kappa_as_2d_array = glimpse_output_as_array(path + f)
+        vmin = min(vmin, np.amin(kappa_as_2d_array))
+        vmax = max(vmax, np.amax(kappa_as_2d_array))
+        print(vmin, vmax)
     
     
     
     for (f, i) in zip(filenames, range(len(filenames))):
     
         kappa_as_2d_array = glimpse_output_as_array(path + f)
-        ax = fig.add_subplot(1, len(filenames), i+1)
-        ax.imshow(kappa_as_2d_array)
-        ax.title.set_text(f)
+        ax = fig.add_subplot(num_rows_of_subplots, len(filenames)/num_rows_of_subplots, i+1)
+        ax.imshow(kappa_as_2d_array, cmap=cmap, vmin=vmin, vmax=vmax)
+        ax.title.set_text(f.replace(".glimpse.out.fits", ""))
         
 
     plt.show()
@@ -1771,12 +1825,11 @@ if __name__ == '__main__':
     #array_slice_from_job_control_string_test_harness()
     #angular_separation_test_harness()
     #one_axis_weight_function_test_harness()
-   
     #define_Buzzard_ten_percent_by_area_subset()
     #kappa_values_in_one_fine_pixel()
     #run_save_buzzard_truth()
-    plot_several_healpix_maps()
-    #plot_several_glimpse_outputs()
+    #plot_several_healpix_maps()
+    plot_several_glimpse_outputs()
     #experiment_tests()
     #show_pixel_histograms()
     #corr_graph()
@@ -1796,6 +1849,7 @@ if __name__ == '__main__':
     #compare_two_cutouts()
     #joint_filter_example()
     #append_random_shear_to_Buzzard()
+    #set_weights_in_catalogue_file()
     pass
     
     
