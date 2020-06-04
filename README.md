@@ -64,7 +64,7 @@ If *c* contains no galaxies then no corresponding file will be created.
 | create_cutouts | ra_name | Catalogue field name for right ascension. The values in this field will be written to the cutout files. Optional; default is "RA". |
 | create_cutouts | dec_name | Catalogue field name for declination. The values in this field will be written to the cutout files. Optional; default is "DEC". |
 | create_cutouts | shear_names | Comma-delimited list of catalogue field names for weak-lensing shear values to be written to the cutouts. Provide one or more pairs of field names. Required. Example: "E1,E2"|
-| create_cutouts | other_field_names | Comma-delimited list of catalogue field names for other fields (such as redshift) to be written to the cutouts. Required. |
+| create_cutouts | other_field_names | Comma-delimited list of catalogue field names for other fields (such as redshift) to be written to the cutouts. Required. A field name may be modified by adding the suffix ":NORMALISE", in which case the values are rescaled to have mean one (this is useful for dealing with weights). Additional dummy fields with constant values may be added  (this is useful for adding dummy redshifts in situations where Glimpse requires a redshift but then doesn't use it). Example: "DUMMY_Z:1.5", which adds a dummy field with name "DUMMY_Z" and constant value 1.5. The dummy field names must start with "DUMMY".  |
 | create_cutouts | nside | The cutouts will be centred on the centres of healpixels with this value as NSIDE. Optional; default is 16. |
 | create_cutouts | cutout_side_in_degrees | The side length of each cutout, in degrees. Optional; default is 16. |
 

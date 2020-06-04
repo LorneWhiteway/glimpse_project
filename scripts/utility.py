@@ -894,32 +894,33 @@ def plot_several_glimpse_outputs():
     
     titles = []
     
-    if False:
+    experiment_names = ["A", "D", "F"]
+    
+    if True:
         path = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/"
-        id = 2277
-        filenames = ["{}/{}.glimpse.out.fits".format(letter, id) for letter in ["A", "B", "C", "D", "E", "F"]]
+        pixel_id = 2277
+        filenames = ["{}/{}.glimpse.out.fits".format(experiment_name, pixel_id) for experiment_name in experiment_names]
     else:
         path = "/share/splinter/ucapwhi/glimpse_project/runs/Mcal_signal/"
-        id = [2277, 2278, 2279, 2280, 2281, 2282]
-        filenames = ["{}.glimpse.out.fits".format(id) for id in [2277, 2278, 2279, 2280, 2281, 2282]]
+        filenames = ["{}.glimpse.out.fits".format(pixel_id) for pixel_id in [2277, 2278, 2279, 2280, 2281, 2282]]
+        
+    kappa_arrays = [glimpse_output_as_array(path + f) for f in filenames]
+    titles = [f.replace(".glimpse.out.fits", "") for f in filenames]
     
+    if True:
+        for (i, j) in [(0,1), (0,2), (1,2)]:
+            kappa_arrays.append(kappa_arrays[i] - kappa_arrays[j])
+            titles.append("{} - {}".format(experiment_names[i], experiment_names[j]))
     
     (vmin, vmax) = (10e10, -10e10)
+    for kappa_array in kappa_arrays:
+        vmin = min(vmin, np.amin(kappa_array))
+        vmax = max(vmax, np.amax(kappa_array))
     
-    for f in filenames:
-        kappa_as_2d_array = glimpse_output_as_array(path + f)
-        vmin = min(vmin, np.amin(kappa_as_2d_array))
-        vmax = max(vmax, np.amax(kappa_as_2d_array))
-        print(vmin, vmax)
-    
-    
-    
-    for (f, i) in zip(filenames, range(len(filenames))):
-    
-        kappa_as_2d_array = glimpse_output_as_array(path + f)
-        ax = fig.add_subplot(num_rows_of_subplots, len(filenames)/num_rows_of_subplots, i+1)
-        ax.imshow(kappa_as_2d_array, cmap=cmap, vmin=vmin, vmax=vmax)
-        ax.title.set_text(f.replace(".glimpse.out.fits", ""))
+    for (kappa_a, t, i) in zip(kappa_arrays, titles, range(len(kappa_arrays))):
+        ax = fig.add_subplot(num_rows_of_subplots, len(kappa_arrays)/num_rows_of_subplots, i+1)
+        ax.imshow(kappa_a, cmap=cmap, vmin=vmin, vmax=vmax)
+        ax.title.set_text(t)
         
 
     plt.show()
@@ -1268,6 +1269,14 @@ def angular_separation_fast_test_harness():
 
 ######################### Start of create_cutouts code #########################
 
+# Helper function - see https://stackoverflow.com/questions/736043/checking-if-a-string-can-be-converted-to-float-in-python
+def isfloat(value):
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+
 
 # Will process ids in the range [ids_to_process_start, ids_to_process_end). Set ids_to_process_end to -1 to mean "to the end"
 def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, job_control, output_directory, output_file_root):
@@ -1296,9 +1305,23 @@ def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_na
     
     print('Processing ' + input_catalogue + '...')
     data = Table.read(input_catalogue, format='fits') # Other formats such as cvs are also supported here...
+    
     for field_name in all_field_names:
-        assert field_name in data.colnames, "{0} is not a column in the input file {1}".format(field_name, input_catalogue)
-    data = data[all_field_names]
+        # field name might be e.g. W.NORMALIZE or DUMMY.1; need to handle these.
+        parsed_field_name = field_name.split(':')
+        field_name_base = parsed_field_name[0]
+        field_name_suffix = "" if len(parsed_field_name) == 1 else parsed_field_name[1]
+        if field_name_base[0:5].upper() == "DUMMY":
+            assert isfloat(field_name_suffix), "Cannot parse field name {}".format(field_name)
+            data[field_name_base] = data[data.colnames[0]]*0.0 + float(field_name_suffix)
+        else:
+            assert field_name_base in data.colnames, "{} is not a column in the input file {}".format(field_name, input_catalogue)
+            # Add additional transform rules here, if you want.
+            if field_name_suffix.upper() == "NORMALIZE" or field_name_suffix.upper() == "NORMALISE":
+                this_field_values = data[field_name_base]
+                data[field_name_base] = this_field_values / np.average(this_field_values)
+            else:
+                assert field_name_suffix == "", "Cannot parse field name {}".format(field_name)
         
     ra = data[raname]
     dec = data[decname]
@@ -1404,6 +1427,7 @@ def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_na
                                 data_columns.append(shear2[joint_filter])
                         
                         for f in other_field_names.split(","):
+                            f = f.split(':')[0]
                             field_names.append(f)
                             data_columns.append(data[f][joint_filter])
                            
