@@ -183,5 +183,10 @@ and in the same `for` loop also add the line
 9. make
 
 ### Things to know about glimpse
+
 1. Command line arguments should be ini file, input catalogue, and output file name (in that order), The input item specifiers '--config', '--data' and '--output' should not be provided (despite what the function help says).
 2. In the ini file, the 'size' argument is the length of the edge of a square. 
+
+### Directory to put output files
+
+`/project/projectdirs/des/whitewal`
