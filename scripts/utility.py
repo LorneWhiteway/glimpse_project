@@ -801,7 +801,7 @@ def plot_several_healpix_maps():
 
     # 1. maps from healpix files
     path = "/share/splinter/ucapwhi/glimpse_project/runs/"
-    filenames = ["202005_Mcal_lambda_3/glimpse.merged.values.dat", "Mcal_signal/glimpse.merged.values.dat"]
+    filenames = ["Mcal_signal/glimpse.merged.values.dat", "202005_Mcal_lambda_3/glimpse.merged.values.dat"]
         
     
     weight_maps = []
@@ -817,7 +817,7 @@ def plot_several_healpix_maps():
     for f in filenames:
         print("Using file {}".format(f))
         maps.append(hp.read_map(path + f, verbose=False))
-        titles.append(f.replace("/glimpse.merged.values.dat","").replace("Buzzard_192_signal/truth.values.dat", "Truth").replace("Buzzard_192_signal/", "Buzzard_192_signal_lambda_3/"))
+        titles.append(f.replace("/glimpse.merged.values.dat","").replace("Buzzard_192_signal/truth.values.dat", "Truth").replace("Buzzard_192_signal/", "Buzzard_192_signal_lambda_3/").replace("202005", "Weights"))
         #titles.append(f)
         
     # 2. other maps
@@ -866,7 +866,11 @@ def plot_several_healpix_maps():
     plt.figure(figsize=(12,7))
     cmap=plt.get_cmap('inferno')
     for this_map, this_title, i in zip(maps, titles, range(len(maps))):
+        
+        print(np.amin(this_map), np.amax(this_map))
+        
         this_map = np.where(np.abs(this_map)<1e-7,  hp.UNSEEN, this_map)
+        
         if False:
             hp.mollview(this_map, title=this_title, cmap=cmap) #fig=i
         elif False:
@@ -874,11 +878,11 @@ def plot_several_healpix_maps():
             hp.gnomview(this_map, rot=rot, title=this_title, reso=3.3, xsize=400, sub=(2,3,i+1), min=-0.035, max=0.061)
         elif True:
             rot = (40.0, -30.0, 0.0)
-            hp.orthview(this_map, rot=rot, title=this_title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1), cmap=cmap, min=-0.03, max=0.03) # max=0.1, min=-0.1, 
+            hp.orthview(this_map, rot=rot, title=this_title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1), cmap=cmap, min=-0.023, max=0.037) # max=0.1, min=-0.1, 
         
         hp.graticule(dpar=30.0)
     
-    if False:
+    if True:
         plt.savefig("./plot.png")
     plt.show()
     
@@ -889,25 +893,29 @@ def plot_several_glimpse_outputs():
     
     cmap = plt.get_cmap('inferno')
     fig = plt.figure(figsize=(12,12))
-    num_rows_of_subplots = 2
+    num_rows_of_subplots = 1
     
     
     titles = []
     
     experiment_names = ["A", "D", "F"]
     
-    if True:
+    if False:
         path = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/"
         pixel_id = 2277
         filenames = ["{}/{}.glimpse.out.fits".format(experiment_name, pixel_id) for experiment_name in experiment_names]
-    else:
+    elif False:
         path = "/share/splinter/ucapwhi/glimpse_project/runs/Mcal_signal/"
         filenames = ["{}.glimpse.out.fits".format(pixel_id) for pixel_id in [2277, 2278, 2279, 2280, 2281, 2282]]
+    else:
+        path = "/share/splinter/ucapwhi/glimpse_project/runs/"
+        filenames = ["{}/2277.glimpse.out.fits".format(sd) for sd in ["Mcal_signal", "202005_Mcal_lambda_3"]]
         
     kappa_arrays = [glimpse_output_as_array(path + f) for f in filenames]
     titles = [f.replace(".glimpse.out.fits", "") for f in filenames]
     
-    if True:
+    if False:
+        # Show diffs
         for (i, j) in [(0,1), (0,2), (1,2)]:
             kappa_arrays.append(kappa_arrays[i] - kappa_arrays[j])
             titles.append("{} - {}".format(experiment_names[i], experiment_names[j]))
@@ -919,10 +927,10 @@ def plot_several_glimpse_outputs():
     
     for (kappa_a, t, i) in zip(kappa_arrays, titles, range(len(kappa_arrays))):
         ax = fig.add_subplot(num_rows_of_subplots, len(kappa_arrays)/num_rows_of_subplots, i+1)
-        ax.imshow(kappa_a, cmap=cmap, vmin=vmin, vmax=vmax)
+        im = ax.imshow(kappa_a, cmap=cmap, vmin=vmin, vmax=vmax)
         ax.title.set_text(t)
-        
-
+        plt.colorbar(im, ax=ax, orientation="horizontal")
+    
     plt.show()
         
 
@@ -979,13 +987,17 @@ def pixel_histograms(list_of_maps, list_of_titles):
     import matplotlib.pyplot as plt
     import numpy as np
     
+    fix_max_to_unity = False
+    
     plt.yscale('log')
     for (m, t) in zip(list_of_maps, list_of_titles):
         (h, b) = np.histogram(m, bins=100, range=(-0.04, 0.06))
-        plt.step(0.5*(b[1:]+b[:-1]), h/np.max(h), where="mid", label=t)
+        plt.step(0.5*(b[1:]+b[:-1]), (h/np.max(h) if fix_max_to_unity else h), where="mid", label=t)
     plt.legend()
     plt.xlabel("$\kappa$")
-    plt.ylabel("Normalised Pixel Count")
+    plt.ylabel("Normalised Pixel Count" if fix_max_to_unity else "Pixel Count")
+    if True:
+        plt.savefig("./plot.png")
     plt.show()
         
 def show_pixel_histograms():
@@ -1003,6 +1015,26 @@ def show_pixel_histograms():
         list_of_maps.append(experimental_result)
         list_of_titles.append(experiment_label(experiment))
     pixel_histograms(list_of_maps, list_of_titles)
+    
+    
+def filter_zeros(a):
+    import numpy as np
+    filter = np.where(np.abs(a) > 1e-15)
+    return a[filter]
+    
+
+def compare_two_pixel_histograms():
+
+    import healpy as hp
+
+    directory = '/share/splinter/ucapwhi/glimpse_project/runs/'
+    filenames = ['Mcal_signal/glimpse.merged.values.dat', '202005_Mcal_lambda_3/glimpse.merged.values.dat']
+    list_of_maps = [filter_zeros(hp.read_map(directory + filename, verbose=False)) for filename in filenames]
+    titles = ["Original", "New with weights"]
+    
+    print([len(m) for m in list_of_maps])
+    pixel_histograms(list_of_maps, titles)
+
     
     
 
@@ -1853,7 +1885,7 @@ if __name__ == '__main__':
     #kappa_values_in_one_fine_pixel()
     #run_save_buzzard_truth()
     #plot_several_healpix_maps()
-    plot_several_glimpse_outputs()
+    #plot_several_glimpse_outputs()
     #experiment_tests()
     #show_pixel_histograms()
     #corr_graph()
@@ -1874,6 +1906,7 @@ if __name__ == '__main__':
     #joint_filter_example()
     #append_random_shear_to_Buzzard()
     #set_weights_in_catalogue_file()
+    compare_two_pixel_histograms()
     pass
     
     
