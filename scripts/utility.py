@@ -374,7 +374,7 @@ def pickle_to_fits_caller():
     pickle_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted.pkl"
     pickle_dataset = 4
     list_of_field_names = ["ra", "dec", "e1", "e2", "w"]
-    output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted_all_bins.pkl"
+    output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted_all_bins.fits"
     pickle_to_fits(pickle_filename, pickle_dataset, list_of_field_names, output_fits_filename)
     
 
