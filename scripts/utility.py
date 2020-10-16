@@ -349,8 +349,43 @@ def set_weights_in_catalogue_file():
     write_to_fits_file(output_filename, ["RA", "DEC", "E1", "E2", "W", "DUMMY_Z"], (ra, dec, e1, e2, w / np.average(w), ones), True)
     
     
+# Use this to test the format of a pickle file.
+#def pickle_test():
+#    import numpy as np
+#    filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted.pkl"
+#    a = np.load(filename, allow_pickle=True, fix_imports=True, mmap_mode='r')
+#    print(a.keys())
+#    for k in a.keys():
+#        print(k, a[k].keys())
+#    
+#    for i in a.keys():
+#        d = a[i]["dec"]
+#        print(i, len(d), min(d), max(d))
+        
+
+# We assume that the pickle files that we encounter have the following structure:
+# Top level dictionary have keys 0,...,n that refer to tomographic bins (one of which 
+# might be the total across all bins).
+# The value associated with one of these keys is another dictionary; it maps field names to
+# numpy data arrays.
+
+
+def pickle_to_fits_caller():
+    pickle_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted.pkl"
+    pickle_dataset = 4
+    list_of_field_names = ["ra", "dec", "e1", "e2", "w"]
+    output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted_all_bins.pkl"
+    pickle_to_fits(pickle_filename, pickle_dataset, list_of_field_names, output_fits_filename)
     
-    
+
+
+
+# pickle_dataset specifies which key from the top-level dictionary to use.
+def pickle_to_fits(pickle_filename, pickle_dataset, list_of_field_names, output_fits_filename):
+    import numpy as np
+    a = np.load(pickle_filename, allow_pickle=True, fix_imports=True, mmap_mode='r')
+    list_of_data_columns = [a[pickle_dataset][field_name] for field_name in list_of_field_names]
+    write_to_fits_file(output_fits_filename, list_of_field_names, list_of_data_columns, verbose=True)
     
     
 
@@ -1906,7 +1941,8 @@ if __name__ == '__main__':
     #joint_filter_example()
     #append_random_shear_to_Buzzard()
     #set_weights_in_catalogue_file()
-    compare_two_pixel_histograms()
+    #compare_two_pixel_histograms()
+    pickle_to_fits_caller()
     pass
     
     
