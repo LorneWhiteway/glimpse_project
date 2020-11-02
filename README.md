@@ -63,7 +63,7 @@ If *c* contains no galaxies then no corresponding file will be created.
 | create_cutouts | input_catalogue | The full name of the source weak-lensing catalogue (FITS format). Required. |
 | create_cutouts | ra_name | Catalogue field name for right ascension. The values in this field will be written to the cutout files. Optional; default is "RA". |
 | create_cutouts | dec_name | Catalogue field name for declination. The values in this field will be written to the cutout files. Optional; default is "DEC". |
-| create_cutouts | shear_names | Comma-delimited list of catalogue field names for weak-lensing shear values to be written to the cutouts. Provide one or more pairs of field names. Required. Example: "E1,E2"|
+| create_cutouts | shear_names | Comma-delimited list of catalogue field names for weak-lensing shear values to be written to the cutouts. Provide one or more pairs of field names. A field name may be modified by adding the suffix ":FLIPSIGN", in which case all the values in this field are multiplied by -1; use this feature to accommodate certain weak lensing quote coinventions. See below for more information. Required. Example: "E1,E2:FLIPSIGN"|
 | create_cutouts | other_field_names | Comma-delimited list of catalogue field names for other fields (such as redshift) to be written to the cutouts. Required. A field name may be modified by adding the suffix ":NORMALISE", in which case the values are rescaled to have mean one (this is useful for dealing with weights). Additional dummy fields with constant values may be added  (this is useful for adding dummy redshifts in situations where Glimpse requires a redshift but then doesn't use it). Example: "DUMMY_Z:1.5", which adds a dummy field with name "DUMMY_Z" and constant value 1.5. The dummy field names must start with "DUMMY".  |
 | create_cutouts | nside | The cutouts will be centred on the centres of healpixels with this value as NSIDE. Optional; default is 16. |
 | create_cutouts | cutout_side_in_degrees | The side length of each cutout, in degrees. Optional; default is 16. |
@@ -102,7 +102,7 @@ This section is used by Glimpse to describe the format of input data (which in o
 | survey | size | The side length in degrees of the glimpse output lattice of points. It is optimal to set this to the same value as create_cutouts::cutout_side_in_degrees (which is typically 16). |
 | survey | units | Set this to 'degrees'; if another unit is chosen then adjust values in this section accordingly. |
 | survey | hdu | Set this to 1 (this corresponds to the format of the cutout catalogue files). |
-| survey | flip_e2 | Set to true or false depending on the weak lensing shear quote convention used in the input catalogue. Experiment to find the correct value. TODO: verify that we handle properly the 'rotate by 45 degrees' calculation for shear when this setting is 'true' (it works OK when 'false'). TODO: Describe the two quote conventions in more detail. |
+| survey | flip_e2 | Always set this to false. If it is necessary to flip the sign of the e2 field (because of the weak lensing shear quote convention used in the input catalogue) then do so by using the ":FLIPSIGN" modifier for the 'shear_names' item in the 'create_cutouts' section. Experiment to find the correct value. |
 | survey | ra | Should equal create_cutouts::ra_name. |
 | survey | dec | Should equal create_cutouts::dec_name. |
 | survey | e1 | The name of the first shear field (which must have been mentioned in create_cutouts::shear_names). |
@@ -155,6 +155,12 @@ Use this command line parameter to subselect only some data for processing.
 
 1. When creating cutouts and when merging, use this to specify that only a subset of all possible cutouts should be handled - this is useful primarily during testing. Use Python slice notation, so that for example `[2000:2100]` would handle only cutouts with 2000 <= id < 2100, while `[::2]` would handle all even-numbered cutouts. Note that ids are zero-based. For cutout creation and merging, job_control is optional; if omitted then all possible cutouts will be handled.
 2. When running glimpse, use this to specify the id of which single cutout is to be processed; this will be useful for example in a job script used to run glimpse in parallel. Note that ids are zero-based. In glimpse mode this parameter is required.
+
+## Weak lensing shear quote convention
+
+Two quote conventions are in use for quoting weak lensing shear; they differ in the sign of the the e2 field. Accommodate the quote convention used in the catalogue by (if necessary) adding ":FLIPSIGN" to the name of the e2 shear field in the "shear_names" item in the "create_cutouts" section of the ini file. In all cases leave the "flip_e2" item in the "survey" section of the ini file set to 'false'. (This is necessary for proper handling of the 'rotate by 45 degrees' logic when creating cutouts.)
+
+Catalogues are typically provided without any mention of quote convention so typically you must experiment to see which convention is correct. When using catalogues from simulations, you can do this by comparing with the "true kappa" provided in the simulation catalogue. When using real data, you can do this by coparing to cluster locations.
 
 ## File names
 
