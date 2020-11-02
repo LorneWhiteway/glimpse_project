@@ -6,12 +6,31 @@
     Author: Lorne Whiteway.
 """
 
+import numpy as np
+import matplotlib.pyplot as plt
+from astropy.table import Table
+import astropy.io.fits as pyfits
+import glob
+import healpy as hp
+import math
+import sys
+import os
+import errno
+import configparser
+import subprocess
+import utility
+import configparser
+import datetime
+import warnings
+from astropy.utils.exceptions import AstropyDeprecationWarning
+
+
 ########################## Start of one-off utilities ##########################
 
 
 # This function written by Macro Gatti. See Slack message on 22 December 2019.
 def apply_random_rotation(e1_in, e2_in):
-    import numpy as np
+    
     np.random.seed() # CRITICAL in multiple processes !
     rot_angle = np.random.rand(len(e1_in)) * 2.0 * np.pi #no need for 2?
     cos = np.cos(rot_angle)
@@ -40,8 +59,6 @@ def append_random_shear_to_Buzzard():
 # See p. GL148
 def joint_filter_example():
 
-    import numpy as np
-    
     data = np.array(range(8)) + 3.0
     filter1 = np.where(data > 6.0)
     filter2 = np.where(data[filter1] < 5.0)
@@ -54,8 +71,6 @@ def joint_filter_example():
 
 def compare_two_cutouts():
 
-    import matplotlib.pyplot as plt
-
     (ra_1, dec_1, e1_1, e2_1) = get_from_fits_file("/share/splinter/ucapwhi/glimpse_project/output/Mcal_0.2_1.3.2218.cat.fits", ["RA", "DEC", "E1", "E2"])
     (ra_2, dec_2, e1_2, e2_2) = get_from_fits_file("/share/splinter/ucapwhi/glimpse_project/output_Mcal_badsign/Mcal_0.2_1.3.2218.cat.fits", ["RA", "DEC", "E1", "E2"])
     
@@ -66,9 +81,6 @@ def compare_two_cutouts():
 
 
 def correct_one_shear_catalogue(catalogue_filename):
-    
-    from astropy.table import Table
-    import astropy.io.fits as pyfits
     
     print("Processing {}...".format(catalogue_filename))
     
@@ -85,8 +97,6 @@ def correct_one_shear_catalogue(catalogue_filename):
     
 def glimpse_sign_experiment():
 
-    import matplotlib.pyplot as plt
-
     glimpse_output_file = "/share/splinter/ucapwhi/glimpse_project/shear_sign_experiment/output.fits"
     (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_file)
     
@@ -100,7 +110,6 @@ def glimpse_sign_experiment():
 
 def correct_one_shear_catalogue_caller():
     
-    import glob
     filelist = glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.*.cat.fits")
     for f in filelist: 
         correct_one_shear_catalogue(f)
@@ -108,7 +117,6 @@ def correct_one_shear_catalogue_caller():
     
 
 def num_files_in_directory():
-    import glob
     print(len(glob.glob("/share/splinter/ucapwhi/glimpse_project/output/Mcal_0.2_1.3.*.cat.fits")))
 
 
@@ -116,7 +124,6 @@ def num_files_in_directory():
 # Written to produce data for Niall; used on 9 Dec 2019
 def redshift_histogram():
     
-    import numpy as np
     np.set_printoptions(precision=3)
     
     top_z = 2.5
@@ -129,7 +136,6 @@ def redshift_histogram():
 
 # Written to produce data for Niall; used on 10 Dec 2019
 def shear_stdev():
-    import numpy as np
     (e1, e2) = get_from_fits_file(buzzard_data_file_name(), ["E1", "E2"])
     e1_and_e2 = np.concatenate((e1, e2))
     print(np.std(e1_and_e2))
@@ -137,10 +143,6 @@ def shear_stdev():
     
 def kappa_histogram():
 
-    import matplotlib.pyplot as plt
-    import healpy as hp
-    import numpy as np
-    
     path = "/share/splinter/ucapwhi/glimpse_project/output/"
     f = "Mcal_0.2_1.3_90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat"
     m = hp.read_map(path + f)
@@ -151,8 +153,6 @@ def kappa_histogram():
 
 def glimpse_output_as_array(glimpse_output_filename):
     
-    import numpy as np
-    import math
     
     (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_filename)
     n = int(math.sqrt(kappa.shape[0]))
@@ -163,10 +163,6 @@ def glimpse_output_as_array(glimpse_output_filename):
 # See also plot_several_glimpse_outputs, which does something similar...
 def show_glimpse_output_as_image():
 
-    import numpy as np
-    import math
-    import matplotlib.pyplot as plt
-
     glimpse_output_filename = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/2277.glimpse.out.fits"
     kappa_as_2d_array = glimpse_output_as_array(glimpse_output_filename)
     plt.imshow(kappa_as_2d_array)
@@ -175,9 +171,6 @@ def show_glimpse_output_as_image():
     
 def define_Buzzard_ten_percent_by_area_subset():
 
-    import healpy as hp
-    import numpy as np
-   
     centre_ra = 40.0
     centre_dec = -30.0
     
@@ -230,27 +223,8 @@ def define_Buzzard_ten_percent_by_area_subset():
         
 
 
-
-
-def add_dummy_redshift_column(file_name):
-
-    import numpy as np
-    
-    list_of_field_names = ["RA", "DEC", "E1", "E2", "E1_RANDOM", "E2_RANDOM"]
-    list_of_data_columns = get_from_fits_file(file_name, list_of_field_names)
-    
-    dummy_z = np.ones(list_of_data_columns[0].shape[0])
-    list_of_field_names.append("DUMMY_Z")
-    list_of_data_columns.append(dummy_z)
-    
-    write_to_fits_file(file_name.replace(".fits", ".new.fits"), list_of_field_names, list_of_data_columns, True)
-    
-
 def save_buzzard_truth(buzzard_data_filename, output_filename):
 
-    import healpy as hp
-    import numpy as np
-    
     do_nest = False
     
     nside = 1024
@@ -283,9 +257,6 @@ def run_save_buzzard_truth():
 
 # One-time test; see p GL97.
 def glimpse_array_order():
-    import healpy as hp
-    import numpy as np
-    import matplotlib.pyplot as plt
     
     glimpse_output_file = "/share/splinter/ucapwhi/glimpse_project/output/Buzzard_192.1440.glimpse.out.fits"
     (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_file)
@@ -296,8 +267,6 @@ def glimpse_array_order():
     
     
 def create_test_catalogue():
-
-    import numpy as np
 
     main_catalogue_filename = "/share/testde/ucapnje/year3_des/Mcal_0.2_1.3.fits"
     list_of_field_names = ["RA", "DEC", "E1", "E2", "DUMMY_Z"]
@@ -317,13 +286,10 @@ def create_test_catalogue():
     
     
 def weight_test():
-    import healpy as hp
     print(hp.ang2pix(16, 30, -30, False, True))
     
     
 def set_weights_in_catalogue_file():
-    
-    import numpy as np
     
     input_filename = "/share/splinter/ucapwhi/glimpse_project/experiments/weight/2277.cat.fits"
     (ra, dec, e1, e2, w) = get_from_fits_file(input_filename, ["RA", "DEC", "E1", "E2", "W"])
@@ -349,32 +315,49 @@ def set_weights_in_catalogue_file():
     write_to_fits_file(output_filename, ["RA", "DEC", "E1", "E2", "W", "DUMMY_Z"], (ra, dec, e1, e2, w / np.average(w), ones), True)
     
     
-# Use this to test the format of a pickle file.
-#def pickle_test():
-#    import numpy as np
-#    filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted.pkl"
-#    a = np.load(filename, allow_pickle=True, fix_imports=True, mmap_mode='r')
-#    print(a.keys())
-#    for k in a.keys():
-#        print(k, a[k].keys())
-#    
-#    for i in a.keys():
-#        d = a[i]["dec"]
-#        print(i, len(d), min(d), max(d))
-        
+
 
 # We assume that the pickle files that we encounter have the following structure:
-# Top level dictionary have keys 0,...,n that refer to tomographic bins (one of which 
+# Top level dictionary has keys that are non-negative integers that refer to tomographic bins (one of which 
 # might be the total across all bins).
 # The value associated with one of these keys is another dictionary; it maps field names to
 # numpy data arrays.
 
 
+# Use this to test the format of a pickle file.
+def show_pickle_file_structure(filename):
+
+    print("Pickle file structure for {}".format(filename))
+    a = np.load(filename, allow_pickle=True, fix_imports=True, mmap_mode='r')
+    print("Top level keys:")
+    print(a.keys())
+    print("Second level keys:")
+    for k in a.keys():
+        print(k, a[k].keys())
+    print("Statistics of dec field for each subkey:")
+    for k in a.keys():
+        d = a[k]["dec"]
+        print(k, len(d), min(d), max(d))
+        
+
+def show_pickle_file_structure_caller():
+    show_pickle_file_structure("/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_full.pkl")
+    show_pickle_file_structure("/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted.pkl")
+
 def pickle_to_fits_caller():
-    pickle_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted.pkl"
+
+    # Set A
+    #pickle_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted.pkl"
+    #list_of_field_names = ["ra", "dec", "e1", "e2", "w"]
+    #pickle_dataset = 4
+    #output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted_all_bins.fits"
+    
+    # Set B 
+    pickle_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_full.pkl"
+    list_of_field_names = ["ra", "dec", "e1", "e2", "w", "k_orig"]
     pickle_dataset = 4
-    list_of_field_names = ["ra", "dec", "e1", "e2", "w"]
-    output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted_all_bins.fits"
+    output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_all_bins.fits"
+    
     pickle_to_fits(pickle_filename, pickle_dataset, list_of_field_names, output_fits_filename)
     
 
@@ -382,10 +365,10 @@ def pickle_to_fits_caller():
 
 # pickle_dataset specifies which key from the top-level dictionary to use.
 def pickle_to_fits(pickle_filename, pickle_dataset, list_of_field_names, output_fits_filename):
-    import numpy as np
     a = np.load(pickle_filename, allow_pickle=True, fix_imports=True, mmap_mode='r')
-    list_of_data_columns = [a[pickle_dataset][field_name] for field_name in list_of_field_names]
-    write_to_fits_file(output_fits_filename, list_of_field_names, list_of_data_columns, verbose=True)
+    output_list_of_data_columns = [a[pickle_dataset][field_name] for field_name in list_of_field_names]
+    output_list_of_field_names = [field_name.upper() for field_name in list_of_field_names]
+    write_to_fits_file(output_fits_filename, output_list_of_field_names, output_list_of_data_columns, verbose=True)
     
     
 
@@ -408,7 +391,6 @@ def array_slice_from_job_control_string(a, job_control):
 
     
 def array_slice_from_job_control_string_test_harness():
-    import numpy as np
     
     a = np.arange(20)
     job_control = ""
@@ -422,7 +404,7 @@ def array_slice_from_job_control_string_test_harness():
 
 # Returns the flattened ra, dec and kappa (in that order).
 def get_glimpse_output_data(glimpse_output_filename):
-    import astropy.io.fits as pyfits
+    
     pyfile = pyfits.open(glimpse_output_filename)
     ra = pyfile[1].data
     dec = pyfile[2].data
@@ -436,10 +418,6 @@ def get_glimpse_output_data(glimpse_output_filename):
 
 def kappa_values_in_one_fine_pixel():
 
-    import healpy as hp
-    import glob
-    import numpy as np
-    import sys
     
     (r,d) = hp.pix2ang(16, 2218, False, True)
     specific_fine_healpix_id = hp.ang2pix(1024, r, d, False, lonlat=True)
@@ -477,7 +455,6 @@ def metacal_data_file_name():
 # 'what_to_get' should be a list of field names (case insensitive).
 # Returns a tuple of arrays.
 def get_from_fits_file(file_name, what_to_get):
-    import astropy.io.fits as pyfits
     res = []
     if what_to_get: # i.e. if list is not empty
         x = pyfits.open(file_name)
@@ -489,7 +466,6 @@ def get_from_fits_file(file_name, what_to_get):
 
 
 def write_to_fits_file(output_filename, list_of_field_names, list_of_data_columns, verbose):
-    import astropy.io.fits as pyfits
     if verbose:
         print("Writing to {}...".format(output_filename))
     column_info = []
@@ -502,9 +478,6 @@ def write_to_fits_file(output_filename, list_of_field_names, list_of_data_column
 
 def fits_catalog_to_healpix_map(catalog_file_name, nside, do_nest):
 
-    import healpy as hp
-    import numpy as np
-
     (ra, dec) = get_from_fits_file(catalog_file_name, ["ra", "dec"])
     
     num_healpixels = hp.nside2npix(nside)
@@ -516,8 +489,6 @@ def fits_catalog_to_healpix_map(catalog_file_name, nside, do_nest):
     
 def glimpse_output_to_healpix_map(glimpse_output_file, nside, do_nest):
 
-    import healpy as hp
-    import numpy as np
     (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_file)
     
     num_healpixels = hp.nside2npix(nside)
@@ -531,8 +502,6 @@ def glimpse_output_to_healpix_map(glimpse_output_file, nside, do_nest):
     
 def glimpse_lattice_points_to_healpix_map(glimpse_output_file, nside, do_nest):
 
-    import healpy as hp
-    import numpy as np
     (ra, dec, kappa) = get_glimpse_output_data(glimpse_output_file)
     
     num_healpixels = hp.nside2npix(nside)
@@ -544,7 +513,6 @@ def glimpse_lattice_points_to_healpix_map(glimpse_output_file, nside, do_nest):
 
 # Cleanup ra_rad so that it lies in [0, 2pi)
 def cleanup_ra_rad(ra_rad):
-    import numpy as np
     two_pi = 2.0 * np.pi
     ret = ra_rad
     # Note that (unexpectedly) the order of the next two lines is crucial
@@ -567,7 +535,6 @@ def cleanup_ra_rad(ra_rad):
 # Direction = 1.0 for clockwise on the sky, -1.0 for anticlockwise on the sky
 # Rotates about (0, 0)
 def rotate_45_degrees(ra_rad, dec_rad, direction):
-    import numpy as np
 
     sin_dec = np.sin(dec_rad)
     cos_dec = np.cos(dec_rad)
@@ -587,8 +554,6 @@ def rotate_shear_45_degrees(e1, e2):
 
 
 def to_standard_position(ra, dec, ra_centre, dec_centre):
-    import numpy as np
-
     ra_rad = np.radians(ra)
     dec_rad = np.radians(dec)
     ra_centre_rad = np.radians(ra_centre)
@@ -622,7 +587,6 @@ def to_standard_position(ra, dec, ra_centre, dec_centre):
 
     
 def from_standard_position(ra, dec, ra_centre, dec_centre):
-    import numpy as np
     
     ra_rad = np.radians(ra)
     dec_rad = np.radians(dec)
@@ -650,9 +614,6 @@ def from_standard_position(ra, dec, ra_centre, dec_centre):
 
 def to_standard_position_test_harness():
 
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
     ra_centre = 72.0
     dec_centre = -18.0
     
@@ -674,9 +635,6 @@ def to_standard_position_test_harness():
 
 def from_standard_position_test_harness():
 
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
     ra_centre = 72.0
     dec_centre = -38.0
     
@@ -699,8 +657,6 @@ def from_standard_position_test_harness():
     
 def to_from_standard_position_test_harness():
     
-    import numpy as np
-    
     num_tests = 1000000
 
     ra = np.random.uniform(size=num_tests) * 360.0
@@ -717,8 +673,6 @@ def to_from_standard_position_test_harness():
 # See p. GL 140
 def rotation_matrix(ra_centre, dec_centre):
 
-    import numpy as np
-
     ra = np.array([0.0, 90.0, 0.0])
     dec = np.array([0.0, 0.0, 90.0])
     (new_ra, new_dec) = to_standard_position(ra, dec, ra_centre, dec_centre)
@@ -733,8 +687,6 @@ def rotation_matrix(ra_centre, dec_centre):
 # Set 'to' to True to go to standard position and to False to go from standard position
 def standard_position_fast_core(x, y, z, ra_centre, dec_centre, to):
 
-    import numpy as np
-    
     A = rotation_matrix(ra_centre, dec_centre)
     if not to:
         A = np.linalg.inv(A)
@@ -753,8 +705,6 @@ def from_standard_position_fast(x, y, z, ra_centre, dec_centre):
     
 def to_from_standard_position_fast_test_harness():
 
-    import numpy as np
-    
     to = False
 
     ra = np.array([0.0, 90.0, 0.0, 34.0, 23.0, 67.0, 332.0, 175.0])
@@ -785,9 +735,6 @@ def to_from_standard_position_fast_test_harness():
 
 def one_pixel_healpix_map(nside, ra, dec, do_nest):
 
-    import healpy as hp
-    import numpy as np
-    
     num_healpixels = hp.nside2npix(nside)
     values = np.zeros(num_healpixels)
 
@@ -798,25 +745,20 @@ def one_pixel_healpix_map(nside, ra, dec, do_nest):
     
     
 def is_in_standard_cutout(ra, dec, side_in_degrees):
-    import numpy as np
     return np.where(np.logical_and((np.abs(ra - 180.0) < 0.5*side_in_degrees), (np.abs(dec - 0.0) < 0.5*side_in_degrees)))
     
     
     
 # return 0 if the absolute difference is small, else return percentage difference.    
 def comparison_function(x, y, tolerance):
-    import numpy as np
     r = np.divide((x-y), y, out=np.zeros_like(y, dtype=float), where=y!=0.0)
     r[np.where(np.abs(x-y)<=tolerance)] = 0.0
     return r
     
 def write_healpix_array_to_file(a, filename, nest):
-    import healpy as hp
 
     if hp.__version__ == "1.10.3":
         # Suppress deprecation warning message about clobber/overwrite
-        import warnings
-        from astropy.utils.exceptions import AstropyDeprecationWarning
         warnings.simplefilter('ignore', AstropyDeprecationWarning)
 
     # print("Writing {}".format(filename))
@@ -825,19 +767,15 @@ def write_healpix_array_to_file(a, filename, nest):
     
 def plot_several_healpix_maps():
 
-    import healpy as hp
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
     nside = 1024 # Needed only in the 'other maps' section...
 
     maps = []
     titles = []
 
     # 1. maps from healpix files
-    path = "/share/splinter/ucapwhi/glimpse_project/runs/"
-    filenames = ["Mcal_signal/glimpse.merged.values.dat", "202005_Mcal_lambda_3/glimpse.merged.values.dat"]
-        
+    path = "/share/splinter/ucapwhi/glimpse_project/experiments/unblinded_sign_test/"
+    filenames = ["1/", "2/", "3/", "4/", "5/", "6/", "7/", "8/"]
+    filenames = [f + "glimpse.merged.values.dat" for f in filenames]
     
     weight_maps = []
     for i in weight_maps:
@@ -893,10 +831,20 @@ def plot_several_healpix_maps():
     
     if False:
         # Show diff between maps[0] and maps[1]
-        tolerance = 0.0009
-        percentage_diff = comparison_function(maps[0], maps[1], tolerance)
-        maps.append(percentage_diff)
-        titles.append("Percentage difference")
+        if False:
+            tolerance = 0.0009
+            percentage_diff = comparison_function(maps[0], maps[1], tolerance)
+            maps.append(percentage_diff)
+            titles.append("Percentage difference")
+        else:
+            maps.append(maps[1] - maps[0])
+            titles.append("Absolute difference")
+        
+        
+    maps_to_flip_sign = []
+    for i in maps_to_flip_sign:
+        maps[i] = -1.0 * maps[i]
+        titles[i] += " TIMES -1"
     
     plt.figure(figsize=(12,7))
     cmap=plt.get_cmap('inferno')
@@ -908,12 +856,12 @@ def plot_several_healpix_maps():
         
         if False:
             hp.mollview(this_map, title=this_title, cmap=cmap) #fig=i
-        elif False:
-            rot = (75.0, -55.0, 0.0)
-            hp.gnomview(this_map, rot=rot, title=this_title, reso=3.3, xsize=400, sub=(2,3,i+1), min=-0.035, max=0.061)
         elif True:
+            rot = (-5.0, -51.0, 0.0)
+            hp.gnomview(this_map, rot=rot, title=this_title, reso=2.0, xsize=400, sub=(2,4,i+1)) #, min=-0.015, max=0.015
+        elif False:
             rot = (40.0, -30.0, 0.0)
-            hp.orthview(this_map, rot=rot, title=this_title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1), cmap=cmap, min=-0.023, max=0.037) # max=0.1, min=-0.1, 
+            hp.orthview(this_map, rot=rot, title=this_title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1), cmap=cmap) # max=0.1, min=-0.1, 
         
         hp.graticule(dpar=30.0)
     
@@ -923,9 +871,6 @@ def plot_several_healpix_maps():
     
 def plot_several_glimpse_outputs():
 
-    import numpy as np
-    import matplotlib.pyplot as plt
-    
     cmap = plt.get_cmap('inferno')
     fig = plt.figure(figsize=(12,12))
     num_rows_of_subplots = 1
@@ -1019,9 +964,6 @@ def Buzzard_reduced_truth_map_filename():
     
 def pixel_histograms(list_of_maps, list_of_titles):
 
-    import matplotlib.pyplot as plt
-    import numpy as np
-    
     fix_max_to_unity = False
     
     plt.yscale('log')
@@ -1037,8 +979,6 @@ def pixel_histograms(list_of_maps, list_of_titles):
         
 def show_pixel_histograms():
 
-    import healpy as hp
-    
     list_of_maps = []
     list_of_titles = []
     filter = Buzzard_reduced_truth_filter()
@@ -1053,14 +993,11 @@ def show_pixel_histograms():
     
     
 def filter_zeros(a):
-    import numpy as np
     filter = np.where(np.abs(a) > 1e-15)
     return a[filter]
     
 
 def compare_two_pixel_histograms():
-
-    import healpy as hp
 
     directory = '/share/splinter/ucapwhi/glimpse_project/runs/'
     filenames = ['Mcal_signal/glimpse.merged.values.dat', '202005_Mcal_lambda_3/glimpse.merged.values.dat']
@@ -1074,9 +1011,6 @@ def compare_two_pixel_histograms():
     
 
 def experiment_tests():
-    
-    import healpy as hp
-    import numpy as np
     
     filter = Buzzard_reduced_truth_filter()
     
@@ -1092,23 +1026,15 @@ def experiment_tests():
         
 def Buzzard_reduced_truth_filter():
 
-    import numpy as np
-    import healpy as hp
-    
     simulation_truth = hp.read_map(Buzzard_reduced_truth_map_filename(), verbose=False)
     return np.where(np.abs(simulation_truth) > 1e-12)
         
+
 def corr_graph():
 
-    import numpy as np
-    import healpy as hp
     from chainconsumer import ChainConsumer
-    
-    
-    
+
     filter = Buzzard_reduced_truth_filter()
-    
-    
     
     c = ChainConsumer()
     
@@ -1130,19 +1056,9 @@ def corr_graph():
     fig = c.plotter.plot(display=True)
     
 
-    
-    
-    
-
-
-
-
 
 def clean_up_edges(input_catalogue_filename, ra_name, dec_name, map_to_be_masked):
 
-    import healpy as hp
-    import numpy as np
-    
     nside = hp.get_nside(map_to_be_masked)
     
     (ra, dec) = get_from_fits_file(input_catalogue_filename, [ra_name, dec_name])
@@ -1160,7 +1076,6 @@ def clean_up_edges(input_catalogue_filename, ra_name, dec_name, map_to_be_masked
 
 
 def sphere_to_tangent_plane_mapping(ra_centre, dec_centre, ra, dec):
-    import numpy as np
     # See LW's notes p. GL90
     ra_centre_rad = np.radians(ra_centre)
     dec_centre_rad = np.radians(dec_centre)
@@ -1176,8 +1091,6 @@ def sphere_to_tangent_plane_mapping(ra_centre, dec_centre, ra, dec):
     
 def sphere_to_tangent_plane_mapping_test_harness():
 
-    import numpy as np
-    
     pixel_id = 2218
     ra_centre = 56.25
     dec_centre = -27.27961273597809
@@ -1220,12 +1133,10 @@ def sphere_to_tangent_plane_mapping_test_harness():
     
     
 def bound_between(x, lower, upper):
-    import numpy as np
     return np.minimum(np.maximum(x, lower), upper)
 
 
 def index_into_glimpse_array_test_harness():
-    import numpy as np
     p_shape = [6, 6]
     
     glimpse_lattice_spacing = 1.2
@@ -1239,9 +1150,6 @@ def index_into_glimpse_array_test_harness():
     
 
 def ra_dec_to_healpixel_id_test_harness():
-    import healpy as hp
-    import numpy as np
-    
     ra = 0.4464
     dec = -0.2678
     nest = False
@@ -1255,7 +1163,6 @@ def ra_dec_to_healpixel_id_test_harness():
 # No error if directory already exists
 # See https://stackoverflow.com/questions/273192
 def create_directory_if_necessary(directory_name):
-    import os, errno
     try:
         os.makedirs(directory_name)
     except OSError as err:
@@ -1264,7 +1171,6 @@ def create_directory_if_necessary(directory_name):
 
 # percentage should be an integer e.g. 60 for 60%. Enter a negative number to clean-up at the end.
 def update_percentage_bar(percentage):
-    import sys
     if percentage >= 0:
         sys.stdout.write('\r' + str(percentage).rjust(3) + r'%' + ' ' * percentage + '█' * (100 - percentage) + ' ')
         sys.stdout.flush()
@@ -1279,8 +1185,6 @@ def update_percentage_bar(percentage):
 # See https://en.wikipedia.org/wiki/Haversine_formula
 def angular_separation(ra1, dec1, ra2, dec2):
 
-	import numpy as np
-
 	long1 = np.radians(ra1)
 	long2 = np.radians(ra2)
 	lat1 = np.radians(dec1)
@@ -1291,14 +1195,12 @@ def angular_separation(ra1, dec1, ra2, dec2):
 	return 2.0 * np.arcsin(np.minimum(1.0, np.sqrt(a)))
     
 def angular_separation_test_harness():
-    import numpy as np
     print(np.degrees(angular_separation(0.0, 0.0, 5.0, 35.0)))
 
 
 # Same rules as for angular_separation
 def angular_separation_fast(sin_ra1, cos_ra1, sin_dec1, cos_dec1, ra2, dec2):
 
-    import numpy as np
     
     ra2_rad = np.radians(ra2)
     dec2_rad = np.radians(dec2)
@@ -1315,7 +1217,6 @@ def angular_separation_fast(sin_ra1, cos_ra1, sin_dec1, cos_dec1, ra2, dec2):
     
     
 def angular_separation_fast_test_harness():
-    import numpy as np
     ra1 = np.array([0.0, 40.0, 90.0, 180.0, 271.0, 280.0])
     dec1 = np.array([0.0, 40.0, -90.0, 87.0, 0.0, -35.0])
     
@@ -1348,15 +1249,6 @@ def isfloat(value):
 # Will process ids in the range [ids_to_process_start, ids_to_process_end). Set ids_to_process_end to -1 to mean "to the end"
 def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_names, nside, cutout_side_in_degrees, job_control, output_directory, output_file_root):
 
-    from astropy.table import Table
-    import healpy as hp
-    import numpy as np
-    import math
-    import astropy.io.fits as pyfits
-    import sys
-    import os
-    
-    
     
     
     create_directory_if_necessary(output_directory)
@@ -1387,6 +1279,8 @@ def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_na
             if field_name_suffix.upper() == "NORMALIZE" or field_name_suffix.upper() == "NORMALISE":
                 this_field_values = data[field_name_base]
                 data[field_name_base] = this_field_values / np.average(this_field_values)
+            elif field_name_suffix.upper() == "FLIPSIGN":
+                data[field_name_base] = -1 * data[field_name_base]
             else:
                 assert field_name_suffix == "", "Cannot parse field name {}".format(field_name)
         
@@ -1485,6 +1379,8 @@ def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_na
                         if shear_names:
                             parsed_shear_names = shear_names.split(",")
                             for (shear_name_1, shear_name_2) in zip(parsed_shear_names[0::2], parsed_shear_names[1::2]):
+                                shear_name_1 = shear_name_1.split(':')[0]
+                                shear_name_2 = shear_name_2.split(':')[0]
                                 (shear1, shear2) = rotate_shear_45_degrees(data[shear_name_1], data[shear_name_2])
                                 
                                 field_names.append(shear_name_1)
@@ -1503,9 +1399,6 @@ def create_cutouts(input_catalogue, raname, decname, shear_names, other_field_na
 
 
 def create_cutouts_caller(directory, job_control):
-
-    import configparser
-    import os
     
     config = configparser.ConfigParser()
     ini_file_name = os.path.abspath(os.path.join(directory, "control.ini"))
@@ -1536,11 +1429,6 @@ def create_cutouts_caller(directory, job_control):
 
 def glimpse_caller(directory, job_id):
 
-    import glob
-    import subprocess
-    import configparser
-    import os
-    
     config = configparser.ConfigParser()
     ini_file_name = os.path.abspath(os.path.join(directory, "control.ini"))
     config.read(ini_file_name)
@@ -1581,7 +1469,6 @@ def smoothed_step_function(x, x0, x1):
 # is a series of 1s. The output is symmetric about the midpoint.
 # See LW's notes p. GL105.
 def one_axis_weight_function(width, outer_border, inner_border):
-    import numpy as np
     assert (outer_border > 0), "outer_border must be positive in one_axis_weight_function"
     assert (outer_border <= inner_border), "outer_border must not exceed inner_border in one_axis_weight_function"
     assert (width > 2 * inner_border), "inner_border is too large in one_axis_weight_function"
@@ -1610,14 +1497,11 @@ def one_axis_weight_function_test_harness():
 # geometric average of two one_axis_weight_functions, one on each of the two axes.
 # Input 'shape' should be the desired shape of the before-being-flattened 2D array.
 def two_axis_weight_function(shape, outer_border, inner_border):
-    import numpy as np
     x = one_axis_weight_function(shape[0], outer_border, inner_border)
     y = one_axis_weight_function(shape[1], outer_border, inner_border)
     return np.sqrt(x[np.newaxis].T * y).reshape(-1)
 
 def two_axis_weight_function_test_harness():
-    import matplotlib.pyplot as plt
-    import numpy as np
     d1 = 100
     d2 = 35
     outer_border = 7
@@ -1631,16 +1515,6 @@ def two_axis_weight_function_test_harness():
     
 
 def merge(input_file_spec, outer_border, inner_border, output_file_root, intermediate_nside, output_nside, cutouts_nside, apply_galaxy_mask, input_catalogue, ra_name, dec_name, job_control):
-    import math
-    import astropy.io.fits as pyfits
-    import healpy as hp
-    import numpy as np
-    import glob
-    import sys
-    import matplotlib.pyplot as plt
-    import utility
-    import os
-    
 
     RA = 0
     DEC = 1
@@ -1807,8 +1681,6 @@ def merge(input_file_spec, outer_border, inner_border, output_file_root, interme
 
 def merge_caller(directory, job_control):
     
-    import configparser
-    import os
     
     config = configparser.ConfigParser()
     ini_file_name = os.path.abspath(os.path.join(directory, "control.ini"))
@@ -1847,7 +1719,6 @@ def merge_caller(directory, job_control):
 
 # Helper function for 'status' routine
 def report_whether_file_exists(file_description, file_name):
-    import os
     print("File {} {} '{}'".format(("exists:" if os.path.isfile(file_name) else "DOES NOT exist: no"), file_description, file_name))
 
 def plural_suffix(count):
@@ -1855,8 +1726,9 @@ def plural_suffix(count):
 
 
 def status(directory):
-    import os
-    import glob
+    
+    # date and time
+    print("Status as of {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     
     # inifile present?
     ini_file_name = os.path.abspath(os.path.join(directory, "control.ini"))
@@ -1893,13 +1765,11 @@ def status(directory):
     
 
 def status_caller(directory):
-    import os
     #directory = os.path.dirname(os.path.abspath(ini_file_name))
     status(directory)
     
 
 ######################### End of status code #########################
-
 
 
     
@@ -1929,7 +1799,6 @@ if __name__ == '__main__':
     #redshift_histogram()
     #clean_up_edges()
     #shear_stdev()
-    #add_dummy_redshift_column(metacal_data_file_name())
     #num_files_in_directory()
     #to_from_standard_position_fast_test_harness()
     #angular_separation_fast_test_harness()
@@ -1943,6 +1812,8 @@ if __name__ == '__main__':
     #set_weights_in_catalogue_file()
     #compare_two_pixel_histograms()
     pickle_to_fits_caller()
+    #pickle_test()
+    #show_pickle_file_structure_caller()
     pass
     
     
