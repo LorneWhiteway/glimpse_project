@@ -31,6 +31,21 @@ import scipy.ndimage as ndi
 ########################## Start of one-off utilities ##########################
 
 
+def clean_up_edges_caller():
+    for root in ["1", "2", "3", "4", "5"]:
+        input_catalogue_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_all_bins.fits"
+        ra_name = "ra"
+        dec_name = "dec"
+        input_map_filename = "/share/splinter/ucapwhi/glimpse_project/runs/20201031_hsc_lambda_{}/glimpse.merged.values.dat".format(root)
+        print("Reading from {}".format(input_map_filename))
+        map_to_be_masked = hp.read_map(input_map_filename)
+        masked_map = clean_up_edges(input_catalogue_filename, ra_name, dec_name, map_to_be_masked)    
+        output_filename = "/share/splinter/ucapwhi/glimpse_project/runs/20201031_hsc_lambda_{}/map_kappa_1024_hsc_mock_20201104_lambda_{}.dat".format(root, root)
+        print("Writing to {}".format(output_filename))
+        write_healpix_array_to_file(masked_map, output_filename, False)
+
+
+
 # This function written by Macro Gatti. See Slack message on 22 December 2019.
 def apply_random_rotation(e1_in, e2_in):
     
@@ -776,8 +791,8 @@ def plot_several_healpix_maps():
     titles = []
 
     # 1. maps from healpix files
-    path = "/share/splinter/ucapwhi/glimpse_project/experiments/hsc_sign_test/"
-    filenames = ["6/", "8/"]
+    path = "/share/splinter/ucapwhi/glimpse_project/runs/"
+    filenames = ["20201031_hsc_lambda_{}/".format(i, i) for i in [1,2,3,4,5]]
     filenames = [f + "glimpse.merged.values.dat" for f in filenames]
     
     weight_maps = []
@@ -823,7 +838,7 @@ def plot_several_healpix_maps():
         maps.append(one_pixel_healpix_map(nside, ra, dec, False))
         titles.append("RA={}; DEC={}; pixel_id={}".format(ra, dec, hp.ang2pix(nside, ra, dec, nest=False, lonlat=True)))
     
-    if True:
+    if False:
         # Also plot true kappa from a simulation
         f = "../../data/hsc_catalogs_weighted_all_bins.fits"
         print("Using file {}".format(f))
@@ -862,14 +877,17 @@ def plot_several_healpix_maps():
         
         print(np.amin(this_map), np.amax(this_map))
         
-        this_map = np.where(np.abs(this_map)<1e-7,  hp.UNSEEN, this_map)
+        if False:
+            # Turn this on when dealing with old maps that indicated 'in masked area' using a value
+            # of zero instead of hp.UNSEEN.
+            this_map = np.where(np.abs(this_map)<1e-7,  hp.UNSEEN, this_map)
         
         if False:
-            hp.mollview(this_map, title=this_title, cmap=cmap) #fig=i
-        elif True:
-            rot = (-3.46154, -51.25581, 0.0) # (pixel 2759 when nside = 16)
-            hp.gnomview(this_map, rot=rot, title=this_title, reso=2.0, xsize=400, sub=(1,3,i+1), min=-0.01, max=0.026)
+            hp.mollview(this_map, title=this_title, sub=(1,len(maps),i+1), cmap=cmap)
         elif False:
+            rot = (-3.46154, -51.25581, 0.0) # (pixel 2759 when nside = 16)
+            hp.gnomview(this_map, rot=rot, title=this_title, reso=2.0, xsize=400, sub=(1,len(maps),i+1)) #, min=-0.04, max=0.06
+        elif True:
             rot = (40.0, -30.0, 0.0)
             hp.orthview(this_map, rot=rot, title=this_title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1), cmap=cmap) # max=0.1, min=-0.1, 
         
@@ -1080,7 +1098,7 @@ def clean_up_edges(input_catalogue_filename, ra_name, dec_name, map_to_be_masked
     for id in ids:
         mask[id] = 1.0 
     
-    return (map_to_be_masked * mask)
+    return np.where(mask == 0.0, hp.UNSEEN, map_to_be_masked)
     
     
 
@@ -1850,6 +1868,7 @@ if __name__ == '__main__':
     #pickle_to_fits_caller()
     #pickle_test()
     #show_pickle_file_structure_caller()
+    #clean_up_edges_caller()
     plot_several_healpix_maps()
     pass
     
