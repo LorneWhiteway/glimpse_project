@@ -23,6 +23,9 @@ import configparser
 import datetime
 import warnings
 from astropy.utils.exceptions import AstropyDeprecationWarning
+import scipy.stats as st
+import scipy.ndimage as ndi
+
 
 
 ########################## Start of one-off utilities ##########################
@@ -773,8 +776,8 @@ def plot_several_healpix_maps():
     titles = []
 
     # 1. maps from healpix files
-    path = "/share/splinter/ucapwhi/glimpse_project/experiments/unblinded_sign_test/"
-    filenames = ["1/", "2/", "3/", "4/", "5/", "6/", "7/", "8/"]
+    path = "/share/splinter/ucapwhi/glimpse_project/experiments/hsc_sign_test/"
+    filenames = ["6/", "8/"]
     filenames = [f + "glimpse.merged.values.dat" for f in filenames]
     
     weight_maps = []
@@ -819,13 +822,20 @@ def plot_several_healpix_maps():
         dec = -27.2796127
         maps.append(one_pixel_healpix_map(nside, ra, dec, False))
         titles.append("RA={}; DEC={}; pixel_id={}".format(ra, dec, hp.ang2pix(nside, ra, dec, nest=False, lonlat=True)))
+    
+    if True:
+        # Also plot true kappa from a simulation
+        f = "../../data/hsc_catalogs_weighted_all_bins.fits"
+        print("Using file {}".format(f))
+        maps.append(kappa_map_from_simulation_catalogue(path + f, nside))
+        titles.append(f + " simulation true kappa")
         
 
     # To smooth a map, include in maps_to_smooth the index of the map (i.e. the map's index in the array 'maps') 
     maps_to_smooth = []
     for i in maps_to_smooth:
         one_arcmin_in_radians = 0.000290888
-        smoothing_scale_in_arcmin = 5.0
+        smoothing_scale_in_arcmin = 7.0
         maps[i] = hp.smoothing(maps[i], sigma = smoothing_scale_in_arcmin * one_arcmin_in_radians)
         titles[i] += " smoothed at {} arcmin".format(smoothing_scale_in_arcmin)
     
@@ -857,8 +867,8 @@ def plot_several_healpix_maps():
         if False:
             hp.mollview(this_map, title=this_title, cmap=cmap) #fig=i
         elif True:
-            rot = (-5.0, -51.0, 0.0)
-            hp.gnomview(this_map, rot=rot, title=this_title, reso=2.0, xsize=400, sub=(2,4,i+1)) #, min=-0.015, max=0.015
+            rot = (-3.46154, -51.25581, 0.0) # (pixel 2759 when nside = 16)
+            hp.gnomview(this_map, rot=rot, title=this_title, reso=2.0, xsize=400, sub=(1,3,i+1), min=-0.01, max=0.026)
         elif False:
             rot = (40.0, -30.0, 0.0)
             hp.orthview(this_map, rot=rot, title=this_title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1), cmap=cmap) # max=0.1, min=-0.1, 
@@ -868,6 +878,7 @@ def plot_several_healpix_maps():
     if True:
         plt.savefig("./plot.png")
     plt.show()
+    
     
 def plot_several_glimpse_outputs():
 
@@ -1234,6 +1245,32 @@ def angular_separation_fast_test_harness():
     print(res1)
     print("=========")
     print(res2)
+    
+    
+
+def kappa_map_from_simulation_catalogue(simulation_catalogue, nside):
+
+    list_of_field_names = ("ra", "dec", "k_orig")
+    (ra, dec, kappa) = get_from_fits_file(simulation_catalogue, list_of_field_names)
+    
+    num_pixels = hp.nside2npix(nside)
+    k_total = np.zeros(num_pixels)
+    k_count = np.zeros(num_pixels)
+    for (i, k) in zip(hp.ang2pix(nside, ra, dec, False, True), kappa):
+        k_total[i] += k
+        k_count[i] += 1
+        
+    # The following division code treats 0/0 as hp.UNSEEN. From https://stackoverflow.com/questions/26248654.
+    kmap = np.divide(k_total, k_count, out = np.full(num_pixels, hp.UNSEEN, dtype=float), where=k_count!=0.0)
+    return kmap
+    
+def kappa_map_from_simulation_catalogue_test_harness():
+    nside = 1024
+    simulation_catalogue = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_all_bins.fits"
+    k_map = kappa_map_from_simulation_catalogue(simulation_catalogue, nside)
+    print(k_map)
+    
+    
 
 ######################### Start of create_cutouts code #########################
 
@@ -1789,7 +1826,6 @@ if __name__ == '__main__':
     #define_Buzzard_ten_percent_by_area_subset()
     #kappa_values_in_one_fine_pixel()
     #run_save_buzzard_truth()
-    #plot_several_healpix_maps()
     #plot_several_glimpse_outputs()
     #experiment_tests()
     #show_pixel_histograms()
@@ -1811,9 +1847,10 @@ if __name__ == '__main__':
     #append_random_shear_to_Buzzard()
     #set_weights_in_catalogue_file()
     #compare_two_pixel_histograms()
-    pickle_to_fits_caller()
+    #pickle_to_fits_caller()
     #pickle_test()
     #show_pickle_file_structure_caller()
+    plot_several_healpix_maps()
     pass
     
     
