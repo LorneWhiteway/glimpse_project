@@ -81,7 +81,7 @@ We then create a fine healpixelisation with NSIDE *intermediate_nside*. For each
 
 Two final post-processing steps are performed:
 1. The value and weight maps are downsampled to NSIDE *output_nside*;
-2. If desired (via *apply_galaxy_mask?*) the downsampled value map (but not the weight map) is masked by setting to zero the kappa value in any healpixel in which no source galaxies were found.
+2. If desired (via *apply_galaxy_mask?*) the downsampled value map (but not the weight map) is masked by setting to hp.UNSEEN the kappa value in any healpixel in which no source galaxies were found. For more information on hp.UNSEEN see https://healpy.readthedocs.io/en/latest/generated/healpy.pixelfunc.UNSEEN.html.
 
 | Section | Key | Value |
 | --- | --- | --- |
@@ -89,7 +89,7 @@ Two final post-processing steps are performed:
 | merge | inner_border | Used to specify weights to be assigned to glimpse lattice points; see above for details. Cannot be less than inner_border. Typical value is 110. Required. |
 | merge | intermediate_nside | NSIDE of intermediate (fine) healpixelisation when merging; see above for details. Typical value is 2048. Required. |
 | merge | output_nside | NSIDE of healpixelisation used in final output map. Typical value is 1024. (Fun fact: on Earth an NSIDE of 1024 would give pixels about two-thirds the size of Manhattan). Required. |
-| merge | apply_galaxy_mask? | If True, then mask the output map by setting kappa values to zero for pixels containing no source galaxies. Required. |
+| merge | apply_galaxy_mask? | If True, then mask the output map by setting kappa values to hp.UNSEEN for pixels containing no source galaxies. Required. |
 
 #### Section [survey]
 
