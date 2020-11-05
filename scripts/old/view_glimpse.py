@@ -68,76 +68,9 @@ def run_view(file_root):
     plt.show()
     
     
-def get_from_simulation(file_root):
-    import astropy.io.fits as pyfits
-    path = './' + file_root + '.glimpse.cat.fits'
-    x = pyfits.open(path)
-    ra = x[1].data.field("ra")
-    dec = x[1].data.field("dec")
-    kappa = x[1].data.field("k_orig")
-    x.close()
-    return (ra, dec, kappa)
 
-def get_from_glimpse(file_root):
-    import numpy as np
-    import astropy.io.fits as pyfits
-    path = './' + file_root + '.glimpse.out.fits'
-    ra = np.ndarray.flatten(pyfits.getdata(path, ext=1))
-    dec = np.ndarray.flatten(pyfits.getdata(path, ext=2))
-    kappa = np.ndarray.flatten(pyfits.getdata(path, ext=0))
-    return (ra, dec, kappa)
-    
-def overall_min_and_max(a, b):
-    import numpy as np
-    return (min(np.amin(a), np.amin(b)), max(np.amax(a), np.amax(b)))
-    
 
-    
-def run_view_kappa(file_root):
-    
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import scipy.stats as st
-    import scipy.ndimage as ndi
-    
-    
-    bins = 170
-    
-    res = [get_from_simulation(file_root), get_from_glimpse(file_root)]
-    (min_ra, max_ra) = overall_min_and_max(res[SIMULATION][RA], res[GLIMPSE][RA])
-    (min_dec, max_dec) = overall_min_and_max(res[SIMULATION][DEC], res[GLIMPSE][DEC])
-    binned_res = [st.binned_statistic_2d(res[i][RA], res[i][DEC], res[i][KAPPA], 'mean', bins, range= [[min_ra, max_ra],[min_dec, max_dec]]) for i in range(2)]
-    
-    (min_kappa, max_kappa) = overall_min_and_max(np.nan_to_num(np.ndarray.flatten(binned_res[SIMULATION][0])), np.nan_to_num(np.ndarray.flatten(binned_res[GLIMPSE][0])))
 
-        
-    if False:
-        print((min_ra, max_ra))
-        print((min_dec, max_dec))
-        print((min_kappa, max_kappa))
-    
-    fig = plt.figure()
-    stretch = 1.0/np.cos(np.radians(0.5*(min_dec+max_dec)))
-    
-    plot_title = ["Buzzard true kappa, no smoothing", "Glimpse kappa using noisy shear, $\lambda = 3$"]
-   
-    for i in range(2):
-        ax = fig.add_subplot(1,2,(i+1))
-        
-        what_to_plot = binned_res[i][0]
-
-        # Smoothing
-        smoothing_scale_in_pixels = 3
-        do_smoothing = False
-        if do_smoothing:
-            what_to_plot = ndi.gaussian_filter(np.nan_to_num(what_to_plot), smoothing_scale_in_pixels)
-
-        # https://stackoverflow.com/questions/14320159/matplotlib-imshow-data-rotated
-        h = ax.imshow(what_to_plot, origin='lower', extent=[min_ra,max_ra,min_dec,max_dec], vmin=min_kappa, vmax=max_kappa, cmap=plt.get_cmap("viridis"), aspect=stretch)
-        plt.title(plot_title[i])
-        
-    
-    plt.show()
     
     
 def hist2d_test_harness():
@@ -180,9 +113,7 @@ if __name__ == '__main__':
     import sys
     if len(sys.argv) <= 1:
         raise RuntimeError("Usage: view_glimpse file_root")
-    if False:
+    if True:
         run_view(sys.argv[1])
-    elif True:
-        run_view_kappa(sys.argv[1])
     else:
         hist2d_test_harness()
