@@ -168,7 +168,7 @@ Catalogues are typically provided without any mention of quote convention so typ
 2. The ini file must be called `control.ini`.
 3. Cutout catalogues will have names `{id}.cat.fits` where `{id}` is the id of the cutout (= healpix id of central point).
 4. Output files from glimpse will have names `{id}.glimpse.out.fits`.
-5. Final output value and weight files will be called `glimpse.merged.values.dat` and `glimpse.merged.weights.dat` respectively.
+5. Final output value and weight files will be called `glimpse.merged.values.fits` and `glimpse.merged.weights.fits` respectively.
 
 
 ## Information useful for running glimpse on the splinter cluster at UCL.

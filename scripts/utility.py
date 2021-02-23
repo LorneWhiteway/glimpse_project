@@ -33,14 +33,14 @@ import scipy.ndimage as ndi
 
 def clean_up_edges_caller():
     for root in ["1", "2", "3", "4", "5"]:
-        input_catalogue_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_all_bins.fits"
+        input_catalogue_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted_all_bins.fits"
         ra_name = "ra"
         dec_name = "dec"
-        input_map_filename = "/share/splinter/ucapwhi/glimpse_project/runs/20201031_hsc_lambda_{}/glimpse.merged.values.dat".format(root)
+        input_map_filename = "/share/splinter/ucapwhi/glimpse_project/runs/20201023_unblinded_lambda_{}/glimpse.merged.values.fits".format(root)
         print("Reading from {}".format(input_map_filename))
         map_to_be_masked = hp.read_map(input_map_filename)
         masked_map = clean_up_edges(input_catalogue_filename, ra_name, dec_name, map_to_be_masked)    
-        output_filename = "/share/splinter/ucapwhi/glimpse_project/runs/20201031_hsc_lambda_{}/map_kappa_1024_hsc_mock_20201104_lambda_{}.dat".format(root, root)
+        output_filename = "/share/splinter/ucapwhi/glimpse_project/runs/20201023_unblinded_lambda_{}/map_kappa_1024_unblinded_data_20201105_lambda_{}.dat".format(root, root)
         print("Writing to {}".format(output_filename))
         write_healpix_array_to_file(masked_map, output_filename, False)
 
@@ -162,7 +162,7 @@ def shear_stdev():
 def kappa_histogram():
 
     path = "/share/splinter/ucapwhi/glimpse_project/output/"
-    f = "Mcal_0.2_1.3_90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.dat"
+    f = "Mcal_0.2_1.3_90_110_2048_downgraded_to_1024_masked.glimpse.merged.values.fits"
     m = hp.read_map(path + f)
     
     plt.hist(m[np.where(m != 0.0)], bins = 50)
@@ -269,7 +269,7 @@ def save_buzzard_truth(buzzard_data_filename, output_filename):
     
     
 def run_save_buzzard_truth():
-    save_buzzard_truth(buzzard_reduced_data_file_name(), "/share/splinter/ucapwhi/glimpse_project/experiments/truth/true_kappa.dat")
+    save_buzzard_truth(buzzard_reduced_data_file_name(), "/share/splinter/ucapwhi/glimpse_project/experiments/truth/true_kappa.fits")
 
     
 
@@ -371,11 +371,17 @@ def pickle_to_fits_caller():
     #output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted_all_bins.fits"
     
     # Set B 
-    pickle_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_full.pkl"
+    #pickle_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_full.pkl"
+    #list_of_field_names = ["ra", "dec", "e1", "e2", "w", "k_orig"]
+    #pickle_dataset = 4
+    #output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_all_bins.fits"
+    
+    # Set C
+    pickle_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_full_dec2020.pkl"
     list_of_field_names = ["ra", "dec", "e1", "e2", "w", "k_orig"]
     pickle_dataset = 4
-    output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_all_bins.fits"
-    
+    output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_all_bins_dec2020.fits"
+
     pickle_to_fits(pickle_filename, pickle_dataset, list_of_field_names, output_fits_filename)
     
 
@@ -792,8 +798,9 @@ def plot_several_healpix_maps():
 
     # 1. maps from healpix files
     path = "/share/splinter/ucapwhi/glimpse_project/runs/"
-    filenames = ["20201031_hsc_lambda_{}/".format(i, i) for i in [1,2,3,4,5]]
-    filenames = [f + "glimpse.merged.values.dat" for f in filenames]
+    #filenames = ["20201031_hsc_lambda_{}/".format(i, i) for i in [1,2,3,4,5]]
+    filenames = ["20201031_hsc_lambda_3/", "20201209_hsc_lambda_3/"]
+    filenames = [f + "glimpse.merged.values.fits" for f in filenames]
     
     weight_maps = []
     for i in weight_maps:
@@ -808,7 +815,7 @@ def plot_several_healpix_maps():
     for f in filenames:
         print("Using file {}".format(f))
         maps.append(hp.read_map(path + f, verbose=False))
-        titles.append(f.replace("/glimpse.merged.values.dat","").replace("Buzzard_192_signal/truth.values.dat", "Truth").replace("Buzzard_192_signal/", "Buzzard_192_signal_lambda_3/").replace("202005", "Weights"))
+        titles.append(f.replace("/glimpse.merged.values.fits","").replace("Buzzard_192_signal/truth.values.fits", "Truth").replace("Buzzard_192_signal/", "Buzzard_192_signal_lambda_3/").replace("202005", "Weights"))
         #titles.append(f)
         
     # 2. other maps
@@ -850,7 +857,7 @@ def plot_several_healpix_maps():
     maps_to_smooth = []
     for i in maps_to_smooth:
         one_arcmin_in_radians = 0.000290888
-        smoothing_scale_in_arcmin = 7.0
+        smoothing_scale_in_arcmin = 15.0
         maps[i] = hp.smoothing(maps[i], sigma = smoothing_scale_in_arcmin * one_arcmin_in_radians)
         titles[i] += " smoothed at {} arcmin".format(smoothing_scale_in_arcmin)
     
@@ -885,11 +892,12 @@ def plot_several_healpix_maps():
         if False:
             hp.mollview(this_map, title=this_title, sub=(1,len(maps),i+1), cmap=cmap)
         elif False:
-            rot = (-3.46154, -51.25581, 0.0) # (pixel 2759 when nside = 16)
-            hp.gnomview(this_map, rot=rot, title=this_title, reso=2.0, xsize=400, sub=(1,len(maps),i+1)) #, min=-0.04, max=0.06
+            #rot = (-3.46154, -51.25581, 0.0) # (pixel 2759 when nside = 16)
+            rot = (70.0, -50.0, 0.0)
+            hp.gnomview(this_map, rot=rot, title=this_title, reso=5.0, xsize=400, sub=(1,len(maps),i+1)) #, min=-0.04, max=0.06
         elif True:
             rot = (40.0, -30.0, 0.0)
-            hp.orthview(this_map, rot=rot, title=this_title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1), cmap=cmap) # max=0.1, min=-0.1, 
+            hp.orthview(this_map, rot=rot, title=this_title, xsize=400, badcolor="grey", half_sky=True, sub=(1,len(maps),i+1), cmap=cmap, max=0.039, min=-0.016) # max=0.1, min=-0.1, 
         
         hp.graticule(dpar=30.0)
     
@@ -984,11 +992,11 @@ def experiment_label(experiment):
 
 
 def experiment_results_filename(experiment):
-    return "/share/splinter/ucapwhi/glimpse_project/experiments/{}/glimpse.merged.values.dat".format(experiment)
+    return "/share/splinter/ucapwhi/glimpse_project/experiments/{}/glimpse.merged.values.fits".format(experiment)
 
 
 def Buzzard_reduced_truth_map_filename():
-    return "/share/splinter/ucapwhi/glimpse_project/experiments/truth/true_kappa.dat"
+    return "/share/splinter/ucapwhi/glimpse_project/experiments/truth/true_kappa.fits"
     
     
 def pixel_histograms(list_of_maps, list_of_titles):
@@ -1029,7 +1037,7 @@ def filter_zeros(a):
 def compare_two_pixel_histograms():
 
     directory = '/share/splinter/ucapwhi/glimpse_project/runs/'
-    filenames = ['Mcal_signal/glimpse.merged.values.dat', '202005_Mcal_lambda_3/glimpse.merged.values.dat']
+    filenames = ['Mcal_signal/glimpse.merged.values.fits', '202005_Mcal_lambda_3/glimpse.merged.values.fits']
     list_of_maps = [filter_zeros(hp.read_map(directory + filename, verbose=False)) for filename in filenames]
     titles = ["Original", "New with weights"]
     
@@ -1815,8 +1823,8 @@ def status(directory):
         print("Files DO NOT exist: no glimpse output files")
         
     # Merge files present?
-    report_whether_file_exists("glimpse output values file", os.path.abspath(os.path.join(directory, "glimpse.merged.values.dat")))
-    report_whether_file_exists("glimpse output weights file", os.path.abspath(os.path.join(directory, "glimpse.merged.weights.dat")))
+    report_whether_file_exists("glimpse output values file", os.path.abspath(os.path.join(directory, "glimpse.merged.values.fits")))
+    report_whether_file_exists("glimpse output weights file", os.path.abspath(os.path.join(directory, "glimpse.merged.weights.fits")))
     
 
 def status_caller(directory):
