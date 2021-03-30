@@ -3,16 +3,19 @@
 
 """ 
     Interface file for for 'glimpse on curved sky' project.
+    All of the actual functionality is located in utilities.py.
     Author: Lorne Whiteway.
 """
 
+
+import utility
+import argparse
+import sys
+import traceback
     
 
 def run(directory, task, job_control):
 
-    from pathlib import Path
-    import utility
-    
 
     tasks = ["create_cutouts", "run_glimpse", "merge", "status"]
     assert (task in tasks), "task should be one of create_cutouts, run_glimpse, merge or status"
@@ -31,12 +34,7 @@ def run(directory, task, job_control):
 
 if __name__ == '__main__':
 
-    import argparse
-    import sys
-    import traceback
-    
     try:
-
         
         parser = argparse.ArgumentParser(description = "Top-level routine for running glimpse on curved sky; see README.md for details")
 
