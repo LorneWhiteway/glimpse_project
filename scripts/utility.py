@@ -359,8 +359,7 @@ def show_pickle_file_structure(filename):
         
 
 def show_pickle_file_structure_caller():
-    show_pickle_file_structure("/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_full.pkl")
-    show_pickle_file_structure("/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted.pkl")
+    show_pickle_file_structure("/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_1_dec2020.pkl")
 
 def pickle_to_fits_caller():
 
@@ -377,12 +376,19 @@ def pickle_to_fits_caller():
     #output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_all_bins.fits"
     
     # Set C
-    pickle_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_full_dec2020.pkl"
-    list_of_field_names = ["ra", "dec", "e1", "e2", "w", "k_orig"]
-    pickle_dataset = 4
-    output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_all_bins_dec2020.fits"
+    #pickle_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_full_dec2020.pkl"
+    #list_of_field_names = ["ra", "dec", "e1", "e2", "w", "k_orig"]
+    #pickle_dataset = 4
+    #output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/hsc_catalogs_weighted_all_bins_dec2020.fits"
+    
+    # Sets D, E, F, G
+    for bin_number in range(4):
+        pickle_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted.pkl"
+        list_of_field_names = ["ra", "dec", "e1", "e2", "w"]
+        pickle_dataset = bin_number
+        output_fits_filename = "/share/splinter/ucapwhi/glimpse_project/data/data_catalogs_weighted_bin_{}.fits".format(bin_number)
 
-    pickle_to_fits(pickle_filename, pickle_dataset, list_of_field_names, output_fits_filename)
+        pickle_to_fits(pickle_filename, pickle_dataset, list_of_field_names, output_fits_filename)
     
 
 
@@ -1877,7 +1883,7 @@ if __name__ == '__main__':
     #pickle_test()
     #show_pickle_file_structure_caller()
     #clean_up_edges_caller()
-    plot_several_healpix_maps()
+    #plot_several_healpix_maps()
     pass
     
     
