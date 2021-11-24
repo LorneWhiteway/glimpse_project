@@ -1742,7 +1742,7 @@ def merge(input_file_spec, outer_border, inner_border, output_file_root, interme
         
     # Save data to healpix format file
     for (filename_part, array) in zip(["values", "weights"], [g_average_values, g_weights]):
-        dat_filename = output_file_root + "glimpse.merged." + filename_part + ".dat"
+        dat_filename = output_file_root + "glimpse.merged." + filename_part + ".fits"
         print("Writing {}...".format(dat_filename))
         write_healpix_array_to_file(array, dat_filename, output_nest)
 
