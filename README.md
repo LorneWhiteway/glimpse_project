@@ -108,7 +108,7 @@ This section is used by Glimpse to describe the format of input data (which in o
 | survey | e1 | The name of the first shear field (which must have been mentioned in create_cutouts::shear_names). |
 | survey | e2 | The name of the second shear field (which must have been mentioned in create_cutouts::shear_names). |
 | survey | z | The name of the redshift field (which must have been mentioned in create_cutouts::other_field_names). |
-| survey | w_e | Optional: the name of the weight field (which must have been mentioned in create_cutouts::other_field_names) as which should be normalised. |
+| survey | w_e | Optional: the name of the weight field (which must have been mentioned in create_cutouts::other_field_names) and which should be normalised. |
 
 #### Section [cosmology]
 
