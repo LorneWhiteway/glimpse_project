@@ -108,6 +108,7 @@ This section is used by Glimpse to describe the format of input data (which in o
 | survey | e1 | The name of the first shear field (which must have been mentioned in create_cutouts::shear_names). |
 | survey | e2 | The name of the second shear field (which must have been mentioned in create_cutouts::shear_names). |
 | survey | z | The name of the redshift field (which must have been mentioned in create_cutouts::other_field_names). |
+| survey | w_e | Optional: the name of the weight field (which must have been mentioned in create_cutouts::other_field_names) as which should be normalised. |
 
 #### Section [cosmology]
 
@@ -158,9 +159,28 @@ Use this command line parameter to subselect only some data for processing.
 
 ## Weak lensing shear quote convention
 
-Two quote conventions are in use for quoting weak lensing shear; they differ in the sign of the the e2 field. Accommodate the quote convention used in the catalogue by (if necessary) adding ":FLIPSIGN" to the name of the e2 shear field in the "shear_names" item in the "create_cutouts" section of the ini file. In all cases leave the "flip_e2" item in the "survey" section of the ini file set to 'false'. (This is necessary for proper handling of the 'rotate by 45 degrees' logic when creating cutouts.)
+Two quote conventions are in use for quoting weak lensing shear; they differ in the sign of the e2 field. Accommodate the quote convention used in the catalogue by (if necessary) adding ":FLIPSIGN" to the name of the e2 shear field in the "shear_names" item in the "create_cutouts" section of the ini file. In all cases leave the "flip_e2" item in the "survey" section of the ini file set to 'false'. (This is necessary for proper handling of the 'rotate by 45 degrees' logic when creating cutouts.)
 
 Catalogues are typically provided without any mention of quote convention so typically you must experiment to see which convention is correct. When using catalogues from simulations, you can do this by comparing with the "true kappa" provided in the simulation catalogue. When using real data, you can do this by coparing to cluster locations.
+
+## Survey weights
+
+ The input weak-lensing catalogue (used to generate the cutout catalogues) may contain object weights, in which case these weights may be passed to glimpse. To do this:
+ 1. Find the field name used in the weak-lensing catalogue to denote the object weight; refer to this as [WeightFieldName].
+ 2. Ensure that the configuration file key `create_cutouts|other_field_names` (a comma-separated list of field names used in the weak-lensing catalogue) contains the item "[WeightFieldName]:NORMALISE". The normalisation is needed as glimpse expects weights that are close to unity.
+ 3. Ensure that the configuration file key `survey|w_e` is set to [WeightFieldName].
+ 
+ Example:
+ ```
+ [create_cutouts]
+other_field_names=W:NORMALISE,DUMMY_Z:0.5,K_ORIG
+...
+[survey]
+w_e=W
+ ```
+Note that the weights discussed here are not related to the weights output in `glimpse.merged.weights.fits`; the latter refer to weights used when merging glimpose output from overlapping cutouts.
+
+ 
 
 ## File names
 
