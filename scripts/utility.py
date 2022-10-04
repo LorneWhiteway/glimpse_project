@@ -803,10 +803,10 @@ def plot_several_healpix_maps():
     titles = []
 
     # 1. maps from healpix files
-    path = "/share/splinter/ucapwhi/glimpse_project/runs/"
+    path = "/share/splinter/ucapwhi/glimpse_project/comparison/"
     #filenames = ["20201031_hsc_lambda_{}/".format(i, i) for i in [1,2,3,4,5]]
-    filenames = ["20201031_hsc_lambda_3/", "20201209_hsc_lambda_3/"]
-    filenames = [f + "glimpse.merged.values.fits" for f in filenames]
+    filenames = ["glimpse.merged.values.fits", "202005_Mcal.lambda_3.glimpse.merged.values.fits", "Mcal_0.2_1.3.signal_shear.glimpse.merged.values.fits"]
+    #filenames = [f + "glimpse.merged.values.fits" for f in filenames]
     
     weight_maps = []
     for i in weight_maps:
@@ -867,7 +867,7 @@ def plot_several_healpix_maps():
         maps[i] = hp.smoothing(maps[i], sigma = smoothing_scale_in_arcmin * one_arcmin_in_radians)
         titles[i] += " smoothed at {} arcmin".format(smoothing_scale_in_arcmin)
     
-    if False:
+    if True:
         # Show diff between maps[0] and maps[1]
         if False:
             tolerance = 0.0009
@@ -876,7 +876,9 @@ def plot_several_healpix_maps():
             titles.append("Percentage difference")
         else:
             maps.append(maps[1] - maps[0])
-            titles.append("Absolute difference")
+            titles.append("Diff 1-0")
+            maps.append(maps[2] - maps[1])
+            titles.append("Diff 2-1")
         
         
     maps_to_flip_sign = []
@@ -1841,6 +1843,34 @@ def status_caller(directory):
 ######################### End of status code #########################
 
 
+######################### Start of bins comparison code #########################
+
+
+def comparison():
+
+    files = ["202005_Mcal_lambda_3", "202005_Mcal_lambda_3_bin_0", "202005_Mcal_lambda_3_bin_1", "202005_Mcal_lambda_3_bin_2", "202005_Mcal_lambda_3_bin_3"]
+    files = ["/share/splinter/ucapwhi/glimpse_project/runs/" + f + "/glimpse.merged.values.fits" for f in files]
+    maps = [hp.read_map(f, verbose=False) for f in files]
+    masked_maps = [np.where(m == hp.UNSEEN, 0, m) for m in maps]
+    #joint_masked_map = 0.25* (masked_maps[1] + masked_maps[2] + masked_maps[3] + masked_maps[4])
+    joint_masked_map = masked_maps[1]
+    #plt.scatter(masked_maps[0], joint_masked_map)
+    plt.hist2d(masked_maps[0], joint_masked_map, bins=500, cmax=10000000, range=[[-0.005, 0.005], [-0.005, 0.005]])
+    plt.show()
+    
+    
+
+
+
+######################### End of bins comparison code #########################
+
+
+
+
+
+
+
+
     
 
 if __name__ == '__main__':
@@ -1884,6 +1914,7 @@ if __name__ == '__main__':
     #show_pickle_file_structure_caller()
     #clean_up_edges_caller()
     #plot_several_healpix_maps()
+    comparison()
     pass
     
     
