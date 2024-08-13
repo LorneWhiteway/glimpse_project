@@ -22,7 +22,3 @@ module load $CFITSIO_MODULE
 module load $CCFITS_MODULE
 module load $ARMADILLO_MODULE
 
-# Load Python, if desired
-set PYTHON_MODULE              = dev_tools/oct2018/python-Anaconda-3-5.3.0
-module load $PYTHON_MODULE
-
